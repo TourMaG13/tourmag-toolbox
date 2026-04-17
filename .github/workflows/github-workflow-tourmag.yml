@@ -1,0 +1,43 @@
+name: TourMaG Toolbox — Scraper RSS + IA
+
+on:
+  schedule:
+    # Toutes les 6h : 6h, 12h, 18h, 00h (UTC)
+    - cron: '0 0,6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      generate_dest:
+        description: 'Pays pour fiche destination IA (laisser vide = pas de génération)'
+        required: false
+        default: ''
+      dest_photo:
+        description: 'URL photo pour la fiche destination (optionnel)'
+        required: false
+        default: ''
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests firebase-admin
+
+      - name: Run scraper
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          GENERATE_DEST_FICHE: ${{ github.event.inputs.generate_dest || '' }}
+          DEST_FICHE_PHOTO: ${{ github.event.inputs.dest_photo || '' }}
+        run: |
+          python scraper_tourmag_toolbox.py
