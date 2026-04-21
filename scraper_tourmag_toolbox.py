@@ -121,7 +121,7 @@ def scrape_experts(db):
 
 # ══════════ RSS RUBRIQUES → modules/ (ONE module per rubrique) ══════════
 def scrape_rss_rubriques(db):
-    print("═══ RSS RUBRIQUES ═══")
+    print("═══ RSS RUBRIQUES (prédéfinies) ═══")
     for rub in RSS_RUBRIQUES:
         doc_id = rub["id"]
         print(f"  [{doc_id}] {rub['title']}...", end=" ", flush=True)
@@ -132,7 +132,6 @@ def scrape_rss_rubriques(db):
         ref = db.collection("modules").document(doc_id)
         rss_data = {"articles":articles,"rssUpdatedAt":datetime.now(timezone.utc).isoformat(),"source":"rss-auto"}
         if ref.get().exists:
-            # Only update articles — never touch display settings
             ref.update(rss_data)
         else:
             ref.set({
@@ -151,11 +150,39 @@ def scrape_rss_rubriques(db):
                 "badge": "",
                 "noBorder": False,
                 "rssSource": rub["rss"],
-                "rubriqueStyle": "grid",  # default style for RSS rubriques
+                "rubriqueStyle": "grid",
                 **rss_data,
             })
         print(f"{len(articles)} articles")
-    print(f"  → {len(RSS_RUBRIQUES)} rubriques.")
+    print(f"  → {len(RSS_RUBRIQUES)} rubriques prédéfinies.")
+
+def scrape_dynamic_rss(db):
+    """Scanne tous les modules de type rubrique avec rssSource et met à jour leurs articles."""
+    print("═══ RSS DYNAMIQUES (rssSource dans modules) ═══")
+    count = 0
+    # Trouver tous les modules rubrique qui ont un rssSource
+    docs = db.collection("modules").where("type", "==", "rubrique").stream()
+    for doc in docs:
+        data = doc.to_dict()
+        rss_url = data.get("rssSource", "")
+        doc_id = doc.id
+        # Skip les rubriques prédéfinies (déjà traitées) et celles sans rssSource
+        if not rss_url or doc_id in [r["id"] for r in RSS_RUBRIQUES]:
+            continue
+        title = data.get("title", doc_id)
+        print(f"  [{doc_id}] {title}...", end=" ", flush=True)
+        xml = fetch_url(rss_url)
+        articles = parse_rss(xml, max_items=10)
+        for art in articles:
+            if not art["image"] and art["url"]: art["image"] = get_og_image(art["url"]); time.sleep(0.3)
+        doc.reference.update({
+            "articles": articles,
+            "rssUpdatedAt": datetime.now(timezone.utc).isoformat(),
+            "source": "rss-auto",
+        })
+        count += 1
+        print(f"{len(articles)} articles")
+    print(f"  → {count} rubriques dynamiques.")
 
 # ══════════ CLAUDE HAIKU ══════════
 def call_haiku(prompt, system="", max_tokens=1500, retries=3):
@@ -185,6 +212,7 @@ def main():
     db = init_firebase()
     scrape_experts(db)
     scrape_rss_rubriques(db)
+    scrape_dynamic_rss(db)
     dest = os.environ.get("GENERATE_DEST_FICHE","")
     if dest: generate_dest_fiche(db, dest, os.environ.get("DEST_FICHE_PHOTO",""))
     print("╚══ Done ══╝")
