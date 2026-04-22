@@ -20,10 +20,10 @@
 .grid{display:flex;flex-wrap:wrap;gap:22px;padding:28px 36px 44px;align-items:start}
 .card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;position:relative;animation:cardIn .4s ease both;min-width:0}@keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}.card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px);border-color:#CBD5E1}.card.clickable{cursor:pointer}
 .card.no-border{background:transparent;border:none;box-shadow:none}.card.no-border:hover{box-shadow:none;transform:none;border:none}.card.no-border .card-body{padding:0}
-/* New width system: full=100%, half=~50%, two-thirds=~66%, one-third=~33% */
-.card.w-full{width:100%}.card.w-half{width:calc(50% - 11px)}.card.w-two-thirds{width:calc(66.666% - 11px)}.card.w-one-third{width:calc(33.333% - 11px)}
+/* New width system */
+.card.w-full{width:100%}.card.w-three-quarters{width:calc(75% - 11px)}.card.w-two-thirds{width:calc(66.666% - 11px)}.card.w-half{width:calc(50% - 11px)}.card.w-one-third{width:calc(33.333% - 11px)}.card.w-one-quarter{width:calc(25% - 17px)}
 /* Legacy size fallbacks */
-.card.sz-xl{width:100%}.card.sz-large{width:calc(50% - 11px)}.card.sz-medium{width:calc(50% - 11px)}.card.sz-small{width:calc(50% - 11px)}
+.card.sz-xl{width:100%}.card.sz-large{width:calc(50% - 11px)}.card.sz-medium{width:calc(50% - 11px)}.card.sz-small{width:calc(25% - 17px)}
 .card-img{width:100%;height:150px;object-fit:cover;display:block}.card.sz-xl .card-img,.card.w-full .card-img{height:180px}.card.sz-small .card-img{height:115px}
 .card-body{padding:22px;flex:1;display:flex;flex-direction:column}.card.sz-small .card-body{padding:16px}
 .card-badge{position:absolute;top:14px;right:14px;padding:4px 11px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.8px;color:#fff;z-index:2;animation:pulse 2s ease-in-out infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.65}}
@@ -44,8 +44,8 @@
 .dataviz-wrap{margin-top:14px;display:flex;align-items:center;justify-content:center;min-height:120px;position:relative}
 .dataviz-counter{text-align:center;padding:20px}.dataviz-counter-val{font-size:48px;font-weight:800;letter-spacing:-2px;font-family:var(--font-display)}.dataviz-counter-suffix{font-size:28px;font-weight:700;opacity:.7}.dataviz-counter-label{font-size:14px;color:var(--text-muted);margin-top:6px}
 .dataviz-canvas{width:100%;max-height:280px}
-@media(max-width:1100px){.grid{gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.sz-large,.card.sz-medium,.card.sz-small{width:calc(50% - 9px)}}
-@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.grid{gap:16px;padding:16px}.card.w-full,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{width:100%}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
+@media(max-width:1100px){.grid{gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-one-quarter,.card.w-one-third,.card.sz-small{width:calc(50% - 9px)}.card.w-three-quarters{width:calc(50% - 9px)}}
+@media(max-width:768px){.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.grid{gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{width:100%}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
 </style>
 </head>
 <body>
@@ -103,12 +103,21 @@ function getTypo(m){
   const atf=bsf; const ats=m.articleTitleSize||to.articleTitleSize||displaySettings.defaultArticleTitleSize||'';
   /* Article description (chapô) */
   const adf=bsf; const ads=m.articleDescSize||to.articleDescSize||displaySettings.defaultArticleDescSize||'';
+  /* Expert-specific typography */
+  const isExpert=(m.type==='expert'||m.type==='experts');
+  const expTf=isExpert?(m.titleFont||displaySettings.defaultExpertTitleFont||tf):tf;
+  const expTextF=isExpert?(m.textFont||displaySettings.defaultExpertTextFont||bsf):bsf;
+  const expNameSz=isExpert?(displaySettings.defaultExpertNameSize||''):'';
+  const expTitleSz=isExpert?(displaySettings.defaultExpertTitleSize||bts):bts;
+  const expArtTitleSz=isExpert?(displaySettings.defaultExpertArticleTitleSize||ats):ats;
+  const expArtDescSz=isExpert?(displaySettings.defaultExpertArticleDescSize||ads):ads;
   return{
-    titleStyle:fontBase(btf)+sizeBase(bts),
+    titleStyle:fontBase(isExpert?expTf:btf)+sizeBase(isExpert?expTitleSz:bts),
     subtitleStyle:fontBase(bsf)+sizeBase(bss),
-    descStyle:fontBase(bdf)+sizeBase(bds),
-    artTitleStyle:fontBase(atf)+sizeBase(ats),
-    artDescStyle:fontBase(adf)+sizeBase(ads),
+    descStyle:fontBase(isExpert?expTextF:bdf)+sizeBase(isExpert?expTitleSz:bds),
+    artTitleStyle:fontBase(isExpert?expTextF:atf)+sizeBase(isExpert?expArtTitleSz:ats),
+    artDescStyle:fontBase(isExpert?expTextF:adf)+sizeBase(isExpert?expArtDescSz:ads),
+    expertNameStyle:fontBase(expTf)+sizeBase(expNameSz),
     /* legacy compat */
     textStyle:fontBase(bsf)+sizeBase(bds),
     titleFont:tf,titleSize:bts,textFont:bsf,textSize:bds
@@ -262,8 +271,8 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
   const nb=m.noBorder?' no-border':'';
   const bh=m.blockHeight?`;height:${m.blockHeight}px;overflow:auto`:'';
   /* Width class: new field m.width or fallback from m.size */
-  const wMap={'full':'w-full','half':'w-half','two-thirds':'w-two-thirds','one-third':'w-one-third'};
-  const szFallback={'xl':'w-full','large':'w-half','medium':'w-half','small':'w-half'};
+  const wMap={'full':'w-full','three-quarters':'w-three-quarters','two-thirds':'w-two-thirds','half':'w-half','one-third':'w-one-third','one-quarter':'w-one-quarter'};
+  const szFallback={'xl':'w-full','large':'w-half','medium':'w-half','small':'w-one-quarter'};
   const wClass=wMap[m.width]||szFallback[m.size]||'w-half';
   if(m.type==='ai-chat')return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${imgTag}
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>
