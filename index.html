@@ -462,12 +462,13 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
   /* Carousel standalone module */
   if(m.type==='carousel'){
     const slides=m.carouselItems||m.articles||[];
+    if(!slides.length)return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div>${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Aucune slide configurée</div></div></div>`;
     const autoPlay=m.carouselAuto!==false;
     const speed=m.carouselSpeed||4000;
     const cId='crs-'+m.id;
     return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div>${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}
-    <div class="carousel-wrap" id="${cId}" data-auto="${autoPlay}" data-speed="${speed}"><div class="carousel-track">${slides.map((s,i)=>`<a class="carousel-slide${i===0?' active':''}" href="${E(s.url||'#')}" target="_blank" style="text-decoration:none;color:inherit">${s.image?`<img src="${E(s.image)}" style="width:100%;height:${m.carouselImgH||180}px;object-fit:cover;border-radius:var(--radius-xs)" onerror="this.style.display='none'">`:''}<div style="padding:${s.image?'8px 0 0':'0'};font-weight:600;line-height:1.3;${artTxtSt||''}">${E(s.title||'')}</div>${s.description?`<div style="color:var(--text-muted);margin-top:3px;font-size:12px;line-height:1.4">${E(s.description)}</div>`:''}</a>`).join('')}</div>
+    <div class="carousel-wrap" id="${cId}" data-auto="${autoPlay}" data-speed="${speed}"><div class="carousel-track">${slides.map((s,i)=>`<a class="carousel-slide${i===0?' active':''}" href="${E(s.url||'#')}" target="_blank" style="text-decoration:none;color:inherit">${s.image?`<img src="${E(s.image)}" style="width:100%;height:${m.carouselImgH||180}px;object-fit:cover;border-radius:var(--radius-xs)" onerror="this.style.display='none'">`:''}<div style="padding:${s.image?'8px 0 0':'0'};font-weight:600;line-height:1.3;${ty.artTitleStyle||''}">${E(s.title||'')}</div>${s.description?`<div style="color:var(--text-muted);margin-top:3px;font-size:12px;line-height:1.4">${E(s.description)}</div>`:''}</a>`).join('')}</div>
     <div class="carousel-dots">${slides.map((_,i)=>`<button class="carousel-dot${i===0?' active':''}" onclick="goSlide('${cId}',${i})"></button>`).join('')}</div></div></div></div>`}
 
   /* HTML embed module — renders inside iframe so scripts execute */
