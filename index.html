@@ -84,10 +84,15 @@ let aiMessages=[{role:'bot',text:"Bonjour ! Je suis Léa, l'assistante IA TourMa
 function initFS(){
   db.collection('modules').orderBy('order').onSnapshot(s=>{modules=s.docs.map(d=>({id:d.id,...d.data()}));renderGrid()},e=>console.warn('FS modules err:',e));
   db.collection('config').doc('tabs').onSnapshot(s=>{if(s.exists&&s.data().tabs?.length){navTabs=s.data().tabs;buildSidebar()}},e=>console.warn('FS tabs err:',e));
-  db.collection('config').doc('displaySettings').onSnapshot(s=>{if(s.exists){displaySettings=s.data()||{};renderGrid()}},e=>{});
+  db.collection('config').doc('displaySettings').onSnapshot(s=>{if(s.exists){displaySettings=s.data()||{};updateBrand();switchTab(activeTab)}},e=>{});
 }
 
 /* ══════════ SIDEBAR ══════════ */
+function updateBrand(){
+  const logo=document.querySelector('.sb-logo');if(logo)logo.textContent=displaySettings.dashboardTitle||'TourMaG Toolbox';
+  const tag=document.querySelector('.sb-tagline');if(tag)tag.textContent=displaySettings.dashboardDesc||'Boîte à outils pro';
+  const mBrand=document.querySelector('.mobile-brand');if(mBrand)mBrand.textContent=displaySettings.dashboardTitle||'TourMaG Toolbox';
+}
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
 function buildSidebar(){document.getElementById('sidebar-nav').innerHTML=navTabs.map(t=>`<button class="sb-item ${activeTab===t.id?'active':''}" onclick="switchTab('${t.id}')">${IC[t.icon]||IC.globe} ${t.label}</button>`).join('')}
 function switchTab(id){activeTab=id;buildSidebar();renderGrid();document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('show');
@@ -476,7 +481,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
     const iframeId='embed-'+m.id;
     const srcdoc=(m.htmlContent||'').replace(/"/g,'&quot;');
     return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${m.badge?`<div class="card-badge" style="background:${m.accent||'#0891B2'}">${E(m.badge)}</div>`:''}
-    <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div>${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}<div class="html-embed-wrap"><iframe id="${iframeId}" srcdoc="${srcdoc}" style="width:100%;border:none;border-radius:var(--radius-xs);overflow:hidden" onload="autoResizeIframe(this)" scrolling="no"></iframe></div></div></div>`}
+    <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div>${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}<div class="html-embed-wrap"><iframe id="${iframeId}" srcdoc="${srcdoc}" style="width:100%;border:none;border-radius:var(--radius-xs);overflow:hidden" data-maxheight="${m.embedMaxHeight||800}" onload="autoResizeIframe(this)" scrolling="no"></iframe></div></div></div>`}
   return`<div class="card ${wClass}${nb} ${m.url?'clickable':''}" ${m.url?`onclick="window.open('${E(m.url)}','_blank')"`:''} style="animation-delay:${d}s${bh}">${m.badge?`<div class="card-badge" style="background:${m.accent||'#0891B2'}">${E(m.badge)}</div>`:''}${imgTag}
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div><div class="card-desc" style="${ty.descStyle}">${E(m.description||'')}</div>${m.url?`<div class="card-arrow">${IC.arrow}</div>`:''}</div></div>`}
 
@@ -510,14 +515,13 @@ async function sendAI(){const inp=document.getElementById('ai-input'),btn=docume
 /* ══════════ UTILS ══════════ */
 function E(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function autoResizeIframe(iframe){
-  /* Start with generous initial height to avoid half-display */
-  iframe.style.height='400px';
-  function resize(){try{const h=iframe.contentDocument.documentElement.scrollHeight;if(h>50)iframe.style.height=h+'px'}catch(e){}}
-  /* Resize at multiple intervals to catch async content (Firebase, scripts) */
+  const maxH=parseInt(iframe.dataset.maxheight)||800;
+  iframe.style.height='300px';
+  function resize(){try{const h=iframe.contentDocument.documentElement.scrollHeight;if(h>50)iframe.style.height=Math.min(h,maxH)+'px'}catch(e){}}
   resize();
-  [300,800,1500,3000,5000,8000].forEach(t=>setTimeout(resize,t));
-  /* Also listen for resize events inside the iframe */
-  try{const obs=new ResizeObserver(resize);obs.observe(iframe.contentDocument.documentElement)}catch(e){}
+  [300,800,1500,3000].forEach(t=>setTimeout(resize,t));
+  /* ResizeObserver with cap */
+  try{const obs=new ResizeObserver(()=>{resize()});obs.observe(iframe.contentDocument.documentElement)}catch(e){}
 }
 
 /* ══════════ IFRAME RESIZE (pour l'embed sur site web) ══════════ */
