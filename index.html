@@ -51,7 +51,7 @@
 .dataviz-counter{text-align:center;padding:20px}.dataviz-counter-val{font-size:48px;font-weight:800;letter-spacing:-2px;font-family:var(--font-display)}.dataviz-counter-suffix{font-size:28px;font-weight:700;opacity:.7}.dataviz-counter-label{font-size:14px;color:var(--text-muted);margin-top:6px}
 .dataviz-canvas{width:100%;max-height:280px}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(6,1fr);gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-full{grid-column:span 6}.card.w-three-quarters,.card.w-two-thirds,.card.w-half{grid-column:span 3}.card.w-one-third,.card.w-one-quarter,.card.sz-small{grid-column:span 3}.card.sz-xl{grid-column:span 6}.card.sz-large,.card.sz-medium{grid-column:span 3}}
-@media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.grid{grid-template-columns:1fr;gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
+@media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.layout{overflow-x:hidden}.grid{grid-template-columns:1fr;gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
 
 /* Fiche destination modal — immersive redesign */
 .fiche-modal-bg{position:fixed;inset:0;background:rgba(10,15,25,.75);z-index:1000;display:none;justify-content:center;align-items:flex-start;padding:0;overflow-y:auto;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -271,7 +271,11 @@ function renderGrid(){
     if(others.length)html+=others.map((m,i)=>renderCard(m,i)).join('');
     if(fiches.length){
       html+=`<div class="dest-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDests(this.value)" id="dest-search-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div>`;
-      html+=`<div class="dest-gallery" id="dest-gallery">${fiches.sort((a,b)=>(b.generatedAt||'').localeCompare(a.generatedAt||'')).map((m,i)=>renderCard(m,i+others.length)).join('')}</div>`;
+      html+=`<div class="dest-gallery" id="dest-gallery">${fiches.sort((a,b)=>{
+        const oa=(a.orders&&a.orders[activeTab]!=null)?a.orders[activeTab]:(a.order||0);
+        const ob=(b.orders&&b.orders[activeTab]!=null)?b.orders[activeTab]:(b.order||0);
+        return oa-ob||(b.generatedAt||'').localeCompare(a.generatedAt||'');
+      }).map((m,i)=>renderCard(m,i+others.length)).join('')}</div>`;
       html+=`<div class="dest-search-results" id="dest-results" style="display:none"></div>`;
     }
     g.innerHTML=html;
@@ -315,8 +319,8 @@ function renderDataviz(){
     const valFontSz=parseInt(canvas.dataset.valsize)||12;
     const lblFontSz=parseInt(canvas.dataset.labelsize)||11;
     if(type==='bar')drawBarChart(ctx,data,W,H,valFontSz,lblFontSz);
-    else if(type==='pie')drawPieChart(ctx,data,W,H,false);
-    else if(type==='donut')drawPieChart(ctx,data,W,H,true);
+    else if(type==='pie')drawPieChart(ctx,data,W,H,false,valFontSz,lblFontSz);
+    else if(type==='donut')drawPieChart(ctx,data,W,H,true,valFontSz,lblFontSz);
   });
 }
 
@@ -361,7 +365,8 @@ function drawBarChart(ctx,data,W,H,valFontSz,lblFontSz){
   });
   ctx.strokeStyle='#CBD5E1';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.left,zeroY);ctx.lineTo(W-pad.right,zeroY);ctx.stroke();
 }
-function drawPieChart(ctx,data,W,H,isDonut){
+function drawPieChart(ctx,data,W,H,isDonut,valFontSz,lblFontSz){
+  valFontSz=valFontSz||12;lblFontSz=lblFontSz||11;
   const cx=W/2,cy=H/2-10,r=Math.min(cx,cy)-20;
   const total=data.reduce((s,d)=>s+d.value,0)||1;
   let angle=-Math.PI/2;
@@ -369,23 +374,32 @@ function drawPieChart(ctx,data,W,H,isDonut){
     const slice=(d.value/total)*Math.PI*2;
     ctx.fillStyle=d.color||'#0891B2';
     ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,angle+slice);ctx.closePath();ctx.fill();
-    /* Label */
+    /* Label + value inside slice */
     const mid=angle+slice/2;
     const lx=cx+Math.cos(mid)*(r*0.65);
     const ly=cy+Math.sin(mid)*(r*0.65);
-    ctx.fillStyle='#fff';ctx.font='bold 11px Outfit,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    if(slice>0.3)ctx.fillText(d.label.substring(0,10),lx,ly);
+    if(slice>0.25){
+      ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.font=`bold ${valFontSz}px Outfit,sans-serif`;
+      const valStr=d.value+(d.suffix||'');
+      ctx.fillText(valStr,lx,ly-Math.round(lblFontSz*0.5));
+      ctx.font=`${lblFontSz}px Outfit,sans-serif`;
+      ctx.fillText(d.label.substring(0,14),lx,ly+Math.round(valFontSz*0.5));
+    } else if(slice>0.12){
+      ctx.fillStyle='#fff';ctx.font=`bold ${Math.max(valFontSz-2,9)}px Outfit,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(d.value+(d.suffix||''),lx,ly);
+    }
     angle+=slice;
   });
   if(isDonut){
     ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,r*0.5,0,Math.PI*2);ctx.fill();
     /* Center total */
-    ctx.fillStyle='#1A2332';ctx.font='bold 22px Outfit,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#1A2332';ctx.font=`bold ${Math.round(valFontSz*1.8)}px Outfit,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.fillText(total.toLocaleString('fr-FR'),cx,cy);
   }
   /* Legend below — wraps to multiple lines if needed */
-  ctx.font='11px Outfit,sans-serif';ctx.textBaseline='top';
-  let lx=10,ly=H-16;const lineH=16;const maxW=W-20;
+  ctx.font=`${lblFontSz}px Outfit,sans-serif`;ctx.textBaseline='top';
+  let lx=10,ly=H-16;const lineH=lblFontSz+5;const maxW=W-20;
   data.forEach(d=>{
     const txt=`${d.label} (${d.value}${d.suffix||''})`;
     const tw=ctx.measureText(txt).width+28;
@@ -582,6 +596,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
 
 
 /* ══════════ CAROUSEL ══════════ */
+let _carouselTimers=[];
 function goSlide(cId,idx){
   const wrap=document.getElementById(cId);if(!wrap)return;
   wrap.querySelectorAll('.carousel-slide').forEach((s,i)=>{s.classList.toggle('active',i===idx)});
@@ -589,13 +604,17 @@ function goSlide(cId,idx){
   wrap._current=idx;
 }
 function initCarousels(){
+  /* Clear ALL previous timers first */
+  _carouselTimers.forEach(t=>clearInterval(t));
+  _carouselTimers=[];
   document.querySelectorAll('.carousel-wrap[data-auto="true"]').forEach(wrap=>{
     const slides=wrap.querySelectorAll('.carousel-slide');
     if(slides.length<2)return;
     const speed=parseInt(wrap.dataset.speed)||4000;
     wrap._current=0;
-    if(wrap._timer)clearInterval(wrap._timer);
-    wrap._timer=setInterval(()=>{const next=(wrap._current+1)%slides.length;goSlide(wrap.id,next)},speed);
+    const timer=setInterval(()=>{const next=(wrap._current+1)%slides.length;goSlide(wrap.id,next)},speed);
+    _carouselTimers.push(timer);
+    wrap._timer=timer;
   });
 }
 
@@ -664,97 +683,147 @@ function openFiche(id){
   const cc=getCountryCode(country);
   const flagHtml=cc?`<img class="fiche-hero-flag" src="https://flagcdn.com/w40/${cc}.png" alt="${country}">`:''
 
-  /* ═══ ESSENTIALS TRIO (first 2 sections + custom) ═══ */
   const sections=m.ficheData.sections||[];
-  const essentialSections=sections.slice(0,3);
-  const essentialColors=['#0891B2','#D97706','#059669'];
-  const essentialBgs=['#F0FDFA','#FFFBEB','#ECFDF5'];
-  const essentialsHtml=essentialSections.map((s,i)=>{
-    const c=essentialColors[i%3];
-    const bg=essentialBgs[i%3];
-    const icon=ficheEssentialIcons[s.title]||ficheIcons[i%ficheIcons.length];
-    const deco=ficheEssentialDecos[s.title]||'';
-    const content=(s.content||'').split(/\n|(?:\. (?=[A-Z\u00C0-\u00FF]))/g).filter(l=>l.trim());
-    const shortContent=content.slice(0,2).map(l=>l.trim().replace(/^[\-\u2022\*]\s*/,'')).join('. ');
-    return `<div class="fiche-essential" style="border-top:3px solid ${c}">
-      <div class="fiche-essential-deco">${deco}</div>
-      <div class="fiche-essential-icon" style="background:${c};color:#fff">${icon}</div>
-      <div class="fiche-essential-label" style="color:${c}">${E(s.title).toUpperCase()}</div>
-      <div class="fiche-essential-desc">${E(shortContent.substring(0,150))}${shortContent.length>150?'…':''}</div>
+  const essentials=m.ficheData.essentials||{};
+
+  /* ═══ ESSENTIALS TRIO ═══ */
+  const essentialCards=[
+    {key:'visa',label:'FORMALITÉ REQUISE',title:essentials.visa?'Visa & Passeport':'',desc:essentials.visa||'',color:'#0891B2',bg:'#F0FDFA',icon:ficheEssentialIcons['Formalités'],deco:'✈️'},
+    {key:'sante',label:'SANTÉ',title:essentials.sante?'Santé & Vaccins':'',desc:essentials.sante||'',color:'#D97706',bg:'#FFFBEB',icon:ficheEssentialIcons['Conseils MAE'],deco:'🩺'},
+    {key:'devise',label:'DEVISE',title:essentials.devise?'Devise & Budget':'',desc:essentials.devise||'',color:'#059669',bg:'#ECFDF5',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',deco:'💰'}
+  ];
+  /* If no essentials stored, fallback to first 3 sections summaries */
+  if(!essentials.visa&&sections.length>=3){
+    essentialCards.forEach((ec,i)=>{
+      const s=sections[i];if(!s)return;
+      ec.label=E(s.title).toUpperCase();
+      ec.title='';
+      const lines=parseFicheContent(s.content);
+      ec.desc=lines.slice(0,2).join('. ').substring(0,150);
+      if(ec.desc.length>=150)ec.desc+='…';
+      ec.icon=ficheEssentialIcons[s.title]||ficheIcons[i%ficheIcons.length];
+    });
+  }
+  const essentialsHtml=essentialCards.map(ec=>{
+    if(!ec.desc)return'';
+    return `<div class="fiche-essential" style="border-top:3px solid ${ec.color}">
+      <div class="fiche-essential-deco">${ec.deco}</div>
+      <div class="fiche-essential-icon" style="background:${ec.color};color:#fff">${ec.icon}</div>
+      <div class="fiche-essential-label" style="color:${ec.color}">${ec.label}</div>
+      ${ec.title?`<div class="fiche-essential-title">${E(ec.title)}</div>`:''}
+      <div class="fiche-essential-desc">${E(ec.desc)}</div>
     </div>`;
   }).join('');
 
-  /* ═══ PHOTO MOSAIC ═══ */
-  const photoQ=encodeURIComponent(country+' travel');
+  /* ═══ PHOTO MOSAIC — use stored photos or static Unsplash IDs ═══ */
+  const photoIds=['photo-1488085061387-422e29b40080','photo-1507525428034-b723cf961d3e','photo-1464822759023-fed622ff2c3b','photo-1528181304800-259b08848526','photo-1504674900247-0877df9cc836'];
+  const storedPhotos=m.photos||[];
+  const mosaicPhotos=[];
+  for(let i=0;i<5;i++){
+    if(storedPhotos[i])mosaicPhotos.push(storedPhotos[i]);
+    else mosaicPhotos.push(`https://images.unsplash.com/${photoIds[i%photoIds.length]}?w=600&q=75`);
+  }
+  /* Use main photo as first mosaic item */
+  if(m.photo)mosaicPhotos[0]=m.photo;
   const mosaicHtml=`<div class="fiche-mosaic">
-    <div><img class="fiche-mosaic-img" src="https://source.unsplash.com/600x500/?${photoQ},landmark" alt="${country}"></div>
-    <div><img class="fiche-mosaic-img" src="https://source.unsplash.com/400x300/?${photoQ},culture" alt="${country}"></div>
-    <div><img class="fiche-mosaic-img" src="https://source.unsplash.com/400x300/?${photoQ},nature" alt="${country}"></div>
-    <div><img class="fiche-mosaic-img" src="https://source.unsplash.com/400x300/?${photoQ},food,cuisine" alt="${country}"></div>
-    <div><img class="fiche-mosaic-img" src="https://source.unsplash.com/400x300/?${photoQ},people,market" alt="${country}"></div>
+    ${mosaicPhotos.map((p,i)=>`<div><img class="fiche-mosaic-img" src="${E(p)}" alt="${country}" onerror="this.style.display='none'"></div>`).join('')}
   </div>`;
 
-  /* ═══ DETAILED SECTIONS ═══ */
-  const detailSects=sections.map((s,si)=>{
-    const c=ficheColors[si%ficheColors.length];
+  /* ═══ PARSE CONTENT HELPER ═══ */
+  function parseFicheContent(raw){
+    if(!raw)return[];
+    return raw.split(/\n/).map(l=>l.trim()).filter(l=>l.length>0).map(l=>l.replace(/^[\-\u2022\*]\s*/,''));
+  }
+
+  /* ═══ SECTION RENDERER ═══ */
+  function renderFicheSect(s,si,colorSet){
+    const c=colorSet[si%colorSet.length];
     const icon=ficheIcons[si%ficheIcons.length];
-    const raw=s.content||'';
-    const items=raw.split(/\n|(?:\. (?=[A-Z\u00C0-\u00FF]))/g).filter(l=>l.trim());
+    const lines=parseFicheContent(s.content);
     let ul='<ul>';
-    items.forEach(l=>{
-      const lt=l.trim().replace(/^[\-\u2022\*]\s*/,'');
-      if(!lt)return;
-      if(lt.endsWith(':')||lt.endsWith(' :')){
-        ul+=`<li class="sub-head" style="color:${c}">${E(lt)}</li>`;
+    lines.forEach(l=>{
+      if(!l)return;
+      if(l.endsWith(':')||l.endsWith(' :')){
+        ul+=`<li class="sub-head" style="color:${c}">${E(l)}</li>`;
       }else{
-        ul+=`<li style="--dot-color:${c}"><span>${E(lt)}</span></li>`;
+        ul+=`<li style="--dot-color:${c}"><span>${E(l)}</span></li>`;
       }
     });
     ul+='</ul>';
     return`<div class="fiche-sect"><div class="fiche-sect-num" style="color:${c}">${String(si+1).padStart(2,'0')}</div><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${c}">${icon}</div><div class="fiche-sect-title" style="color:${c}">${E(s.title)}</div></div>${ul}</div>`;
-  }).join('');
+  }
 
-  /* ═══ NEWS CARD — search for articles matching country ═══ */
-  let newsHtml='';
-  const countryLower=country.toLowerCase();
-  const newsArticles=[];
-  modules.forEach(mod=>{
-    if(!mod.articles)return;
-    mod.articles.forEach(a=>{
-      if((a.title||'').toLowerCase().includes(countryLower)||(a.description||'').toLowerCase().includes(countryLower)){
-        newsArticles.push(a);
-      }
-    });
+  /* ═══ GROUP SECTIONS: pratique vs vente ═══ */
+  const pratiqueKeys=['conseils mae','formalités','formalites','dynamisme','points d\'intérêt','points d\'interet','intérêt'];
+  const venteKeys=['tour-opérateurs','tour-operateurs','opérateurs','operateurs','conseils de vente','vente'];
+  const pratiqueSects=[];const venteSects=[];
+  sections.forEach(s=>{
+    const tl=(s.title||'').toLowerCase();
+    const group=s.group||'';
+    if(group==='vente'||venteKeys.some(k=>tl.includes(k))){venteSects.push(s)}
+    else{pratiqueSects.push(s)}
   });
-  if(newsArticles.length){
-    const newsItems=newsArticles.slice(0,5).map(a=>{
-      const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
-      return `<a class="fiche-news-item" href="${E(a.url)}" target="_blank">${a.image?`<img class="fiche-news-item-img" src="${E(a.image)}" onerror="this.style.display='none'">`:''}<div class="fiche-news-item-title">${E(a.title)}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`;
-    }).join('');
-    newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${newsItems}</div></div>`;
+  const pratiqueColors=['#0891B2','#D97706','#059669','#7C3AED'];
+  const venteColors=['#DC2626','#2563EB'];
+
+  let pratHtml='';
+  if(pratiqueSects.length){
+    pratHtml=`<div class="fiche-section-divider"><span class="fiche-section-divider-label">INFOS PRATIQUES</span><div class="fiche-section-divider-title">Préparer le voyage</div><div class="fiche-section-divider-line"></div></div>
+    <div class="fiche-sections">${pratiqueSects.map((s,i)=>renderFicheSect(s,i,pratiqueColors)).join('')}</div>`;
+  }
+
+  let venteHtml='';
+  if(venteSects.length){
+    venteHtml=`<div class="fiche-section-divider"><span class="fiche-section-divider-label">MÉMO PRO</span><div class="fiche-section-divider-title">Bien vendre la destination</div><div class="fiche-section-divider-line"></div></div>
+    <div class="fiche-sections">${venteSects.map((s,i)=>renderFicheSect(s,i,venteColors)).join('')}</div>`;
   }
 
   /* ═══ POINTS D'INTÉRÊT as numbered cards ═══ */
   let poiHtml='';
   const poiSection=sections.find(s=>s.title&&s.title.toLowerCase().includes('intérêt'));
   if(poiSection){
-    const poiItems=(poiSection.content||'').split(/\n|(?:- )/g).filter(l=>l.trim()&&l.trim().length>3);
-    if(poiItems.length>1){
+    const poiLines=parseFicheContent(poiSection.content).filter(l=>l.length>3);
+    if(poiLines.length>1){
       const poiColors=['#DC2626','#D97706','#059669','#7C3AED','#0891B2','#2563EB'];
       poiHtml=`<div class="fiche-section-divider"><span class="fiche-section-divider-label">CHECK-LIST DESTINATION</span><div class="fiche-section-divider-title">Culture, Nature & Découvertes</div><div class="fiche-section-divider-line"></div></div>
-      <div class="fiche-poi">${poiItems.slice(0,8).map((p,pi)=>{
-        const clean=p.trim().replace(/^[\-\u2022\*]\s*/,'');
-        const parts=clean.split(/[:\-–]/);
-        const name=parts[0]?.trim()||clean;
-        const desc=parts.slice(1).join('-').trim()||'';
+      <div class="fiche-poi">${poiLines.slice(0,8).map((p,pi)=>{
+        const parts=p.split(/\s*[:\u2013\u2014]\s*/);
+        const name=parts[0]?.trim()||p;
+        const desc=parts.slice(1).join(' — ').trim()||'';
         return `<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiColors[pi%poiColors.length]}">${String(pi+1).padStart(2,'0')}.</div><div class="fiche-poi-name">${E(name)}</div>${desc?`<div class="fiche-poi-desc">${E(desc)}</div>`:''}</div>`;
       }).join('')}</div>`;
     }
   }
 
-  /* ═══ ASSEMBLE MODAL ═══ */
-  document.getElementById('fiche-modal').innerHTML=`
-    <div class="fiche-hero" style="background-image:url('${E(m.photo||getUnsplashUrl(country,1200,500))}')">
+  /* ═══ NEWS CARD — search for articles matching country ═══ */
+  let newsHtml='';
+  const countryLower=country.toLowerCase();
+  const countryWords=countryLower.split(/\s+/).filter(w=>w.length>2);
+  const newsArticles=[];
+  modules.forEach(mod=>{
+    if(!mod.articles)return;
+    mod.articles.forEach(a=>{
+      const title=(a.title||'').toLowerCase();
+      const desc=(a.description||'').toLowerCase();
+      if(countryWords.some(w=>title.includes(w))||title.includes(countryLower)||desc.includes(countryLower)){
+        newsArticles.push(a);
+      }
+    });
+  });
+  /* Always show the news block, even if empty — gives a slot for future RSS */
+  const newsItems=newsArticles.slice(0,5);
+  if(newsItems.length){
+    newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${newsItems.map(a=>{
+      const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
+      return `<a class="fiche-news-item" href="${E(a.url)}" target="_blank">${a.image?`<img class="fiche-news-item-img" src="${E(a.image)}" onerror="this.style.display='none'">`:''}<div class="fiche-news-item-title">${E(a.title)}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`;
+    }).join('')}</div></div>`;
+  } else {
+    newsHtml=`<div class="fiche-news" style="background:linear-gradient(135deg,#1E293B,#334155)"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Actualités — ${E(country)}</div><div style="font-size:13px;opacity:.6;padding:8px 0">Aucune actualité récente sur cette destination. Les articles apparaîtront automatiquement.</div></div>`;
+  }
+
+  /* ═══ ASSEMBLE MODAL HTML ═══ */
+  const ficheHtml=`
+    <div class="fiche-hero" style="background-image:url('${E(m.photo||'')}')">
       <div class="fiche-hero-overlay"></div>
       <button class="fiche-close" onclick="closeFiche()">&times;</button>
       <div class="fiche-hero-content">
@@ -766,17 +835,29 @@ function openFiche(id){
     <div class="fiche-essentials">${essentialsHtml}</div>
     <div class="fiche-modal-body">
       ${mosaicHtml}
-      <div class="fiche-section-divider"><span class="fiche-section-divider-label">MÉMO PRO</span><div class="fiche-section-divider-title">Tout savoir pour bien vendre</div><div class="fiche-section-divider-line"></div></div>
-      <div class="fiche-sections">${detailSects}</div>
+      ${pratHtml}
       ${poiHtml}
+      ${venteHtml}
       ${newsHtml}
     </div>`;
+
+  /* Try to break out of iframe via postMessage */
+  if(window.parent!==window){
+    window.parent.postMessage({type:'tourmag-fiche-modal',html:ficheHtml},'*');
+  }
+  /* Also show in local modal as fallback */
+  document.getElementById('fiche-modal').innerHTML=ficheHtml;
   document.getElementById('fiche-modal-bg').classList.add('show');
   document.body.style.overflow='hidden';
-  /* Scroll modal to top */
   document.getElementById('fiche-modal-bg').scrollTop=0;
 }
-function closeFiche(){document.getElementById('fiche-modal-bg').classList.remove('show');document.body.style.overflow=''}
+function closeFiche(){
+  document.getElementById('fiche-modal-bg').classList.remove('show');
+  document.body.style.overflow='';
+  if(window.parent!==window){
+    window.parent.postMessage({type:'tourmag-fiche-close'},'*');
+  }
+}
 
 function filterDests(q){
   const fiches=modules.filter(m=>m.type==='focus');
