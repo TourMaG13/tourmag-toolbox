@@ -266,11 +266,17 @@ function renderGrid(){
   if(!mods.length){g.innerHTML='<div class="empty-state">Aucun module dans cette catégorie.</div>';return}
   if(activeTab==='destinations'){
     const fiches=mods.filter(m=>m.type==='focus');
-    const others=mods.filter(m=>m.type!=='focus');
+    const others=mods.filter(m=>m.type!=='focus'&&m.type!=='dest-search');
+    const searchMod=mods.find(m=>m.type==='dest-search');
     let html='';
     if(others.length)html+=others.map((m,i)=>renderCard(m,i)).join('');
+    /* Render dest-search module as a card if it exists, else fallback to built-in */
+    if(searchMod){
+      html+=renderCard(searchMod,others.length);
+    } else if(fiches.length){
+      html+=`<div class="dest-search" style="grid-column:1/-1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDests(this.value)" id="dest-search-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div>`;
+    }
     if(fiches.length){
-      html+=`<div class="dest-search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDests(this.value)" id="dest-search-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div>`;
       html+=`<div class="dest-gallery" id="dest-gallery">${fiches.sort((a,b)=>{
         const oa=(a.orders&&a.orders[activeTab]!=null)?a.orders[activeTab]:(a.order||0);
         const ob=(b.orders&&b.orders[activeTab]!=null)?b.orders[activeTab]:(b.order||0);
@@ -591,6 +597,13 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
     const srcdoc=(m.htmlContent||'').replace(/"/g,'&quot;');
     return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${m.badge?`<div class="card-badge" style="background:${m.accent||'#0891B2'}">${E(m.badge)}</div>`:''}
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div>${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}<div class="html-embed-wrap"><iframe id="${iframeId}" srcdoc="${srcdoc}" style="width:100%;border:none;border-radius:var(--radius-xs);overflow:hidden" data-maxheight="${m.embedMaxHeight||800}" onload="autoResizeIframe(this)" scrolling="no"></iframe></div></div></div>`}
+  /* Dest search module */
+  if(m.type==='dest-search'){
+    const fiches=modules.filter(x=>x.type==='focus'&&x.active!==false);
+    const placeholder=m.searchPlaceholder||'Rechercher une destination...';
+    return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">
+    <div class="card-body">${m.title?`<div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>`:''}
+    <div class="dest-search" style="margin-top:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="${E(placeholder)}" oninput="filterDests(this.value)" id="dest-search-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div></div></div>`}
   return`<div class="card ${wClass}${nb} ${m.url?'clickable':''}" ${m.url?`onclick="window.open('${E(m.url)}','_blank')"`:''} style="animation-delay:${d}s${bh}">${m.badge?`<div class="card-badge" style="background:${m.accent||'#0891B2'}">${E(m.badge)}</div>`:''}${imgTag}
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div><div class="card-desc" style="${ty.descStyle}">${E(m.description||'')}</div>${m.url?`<div class="card-arrow">${IC.arrow}</div>`:''}</div></div>`}
 
@@ -914,8 +927,12 @@ setInterval(notifyParentResize,1500);
 /* Also notify after tab switches */
 window.addEventListener('message',function(e){
   if(e.data&&e.data.type==='tourmag-scroll-to'){
-    /* Parent can ask us to scroll to a position */
     window.scrollTo({top:e.data.y||0,behavior:'smooth'});
+  }
+  if(e.data&&e.data.type==='tourmag-fiche-close-ack'){
+    /* Parent closed the overlay — close our internal modal too */
+    document.getElementById('fiche-modal-bg').classList.remove('show');
+    document.body.style.overflow='';
   }
 });
 /* Open fiche modal via postMessage — breaks out of iframe */
