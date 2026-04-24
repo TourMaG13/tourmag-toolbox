@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Roboto:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Merriweather:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Lexend:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F0F4F8;--bg-card:#FFF;--bg-sidebar:#0C1929;--bg-sidebar-hover:rgba(255,255,255,.06);--bg-sidebar-active:rgba(8,145,178,.18);--text-dark:#1A2332;--text-body:#475569;--text-muted:#94A3B8;--text-sidebar:#CBD5E1;--text-sidebar-active:#67E8F9;--accent:#0891B2;--accent-light:#ECFEFF;--border:#E2E8F0;--border-light:#F1F5F9;--shadow-lg:0 10px 40px rgba(0,0,0,.08);--radius:16px;--radius-sm:12px;--radius-xs:8px;--sidebar-w:220px;--header-h:64px;--font-display:'Source Serif 4',Georgia,serif;--font-body:'Outfit',system-ui,sans-serif}
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg);color:var(--text-dark);overflow-x:hidden;overflow-y:auto}html{scrollbar-width:none;overflow-y:auto}html::-webkit-scrollbar{display:none}
-.layout{display:flex;min-height:100vh}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg);color:var(--text-dark);overflow:hidden}html{scrollbar-width:none;overflow:hidden}html::-webkit-scrollbar{display:none}
+.layout{display:flex}
 .sidebar{width:var(--sidebar-w);background:var(--bg-sidebar);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);border-right:1px solid rgba(255,255,255,.06)}
 .sb-brand{padding:22px 18px 20px;border-bottom:1px solid rgba(255,255,255,.06)}.sb-logo{font-family:var(--font-display);font-size:18px;font-weight:800;background:linear-gradient(135deg,#06B6D4,#22D3EE);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.sb-tagline{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:rgba(148,163,184,.5);margin-top:4px;font-weight:500}
 .sb-nav{flex:1;padding:16px 10px;overflow-y:auto}.sb-section{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(148,163,184,.35);padding:16px 12px 6px;font-weight:600}
@@ -917,11 +917,13 @@ function openFiche(id){
 </style>`;
     window.parent.postMessage({type:'tourmag-fiche-modal',html:ficheCSS+ficheHtml},'*');
   }
-  /* Also show in local modal as fallback */
-  document.getElementById('fiche-modal').innerHTML=ficheHtml;
-  document.getElementById('fiche-modal-bg').classList.add('show');
-  document.body.style.overflow='hidden';
-  document.getElementById('fiche-modal-bg').scrollTop=0;
+  /* Show local modal ONLY if not in iframe (standalone mode) */
+  if(window.parent===window){
+    document.getElementById('fiche-modal').innerHTML=ficheHtml;
+    document.getElementById('fiche-modal-bg').classList.add('show');
+    document.body.style.overflow='hidden';
+    document.getElementById('fiche-modal-bg').scrollTop=0;
+  }
 }
 function closeFiche(){
   document.getElementById('fiche-modal-bg').classList.remove('show');
@@ -970,10 +972,16 @@ function autoResizeIframe(iframe){
 /* ══════════ IFRAME RESIZE (pour l'embed sur site web) ══════════ */
 function notifyParentResize(){
   try{
-    /* Calculate total content height — no capping, let parent scroll */
-    const body=document.body;
-    const html=document.documentElement;
-    const h=Math.max(body.scrollHeight,body.offsetHeight,html.scrollHeight,html.offsetHeight);
+    /* Measure actual content height by finding the bottom-most element */
+    const main=document.querySelector('.main');
+    if(!main)return;
+    /* Temporarily allow overflow to measure true height */
+    const prevO=document.body.style.overflow;
+    document.body.style.overflow='visible';
+    document.documentElement.style.overflow='visible';
+    const h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight);
+    document.body.style.overflow=prevO||'hidden';
+    document.documentElement.style.overflow='hidden';
     if(window.parent!==window){
       window.parent.postMessage({type:'tourmag-resize',height:h},'*');
     }
