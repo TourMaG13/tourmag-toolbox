@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TourMaG Toolbox — La Boîte à Outils du Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Roboto:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Roboto:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Merriweather:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Lexend:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F0F4F8;--bg-card:#FFF;--bg-sidebar:#0C1929;--bg-sidebar-hover:rgba(255,255,255,.06);--bg-sidebar-active:rgba(8,145,178,.18);--text-dark:#1A2332;--text-body:#475569;--text-muted:#94A3B8;--text-sidebar:#CBD5E1;--text-sidebar-active:#67E8F9;--accent:#0891B2;--accent-light:#ECFEFF;--border:#E2E8F0;--border-light:#F1F5F9;--shadow-lg:0 10px 40px rgba(0,0,0,.08);--radius:16px;--radius-sm:12px;--radius-xs:8px;--sidebar-w:220px;--header-h:64px;--font-display:'Source Serif 4',Georgia,serif;--font-body:'Outfit',system-ui,sans-serif}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg);color:var(--text-dark);overflow-x:hidden}
@@ -89,8 +89,12 @@ function initFS(){
 
 /* ══════════ SIDEBAR ══════════ */
 function updateBrand(){
-  const logo=document.querySelector('.sb-logo');if(logo)logo.textContent=displaySettings.dashboardTitle||'TourMaG Toolbox';
-  const tag=document.querySelector('.sb-tagline');if(tag)tag.textContent=displaySettings.dashboardDesc||'Boîte à outils pro';
+  const logoEl=document.querySelector('.sb-logo');
+  if(logoEl){
+    if(displaySettings.sidebarLogoUrl){logoEl.innerHTML=`<img src="${displaySettings.sidebarLogoUrl}" style="max-height:36px;max-width:100%;object-fit:contain">`}
+    else{logoEl.textContent=displaySettings.sidebarTitle||displaySettings.dashboardTitle||'TourMaG Toolbox'}
+  }
+  const tag=document.querySelector('.sb-tagline');if(tag)tag.textContent=displaySettings.sidebarTagline||displaySettings.dashboardDesc||'Boîte à outils pro';
   const mBrand=document.querySelector('.mobile-brand');if(mBrand)mBrand.textContent=displaySettings.dashboardTitle||'TourMaG Toolbox';
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
@@ -101,12 +105,12 @@ function switchTab(id){activeTab=id;buildSidebar();renderGrid();document.getElem
   const defTitle=id==='dashboard'?(displaySettings.dashboardTitle||'La Bo\u00eete \u00e0 Outils du Pro'):(t?.label||id);
   const defDesc=id==='dashboard'?(displaySettings.dashboardDesc||'Tous vos outils m\u00e9tier en un seul endroit.'):(to.tabDesc||'Retrouvez tous les outils '+(t?.label||id)+'.');
   const el=document.getElementById('page-title');el.textContent=defTitle;
-  if(displaySettings.headerTitleSize)el.style.fontSize=displaySettings.headerTitleSize+'px';
-  if(displaySettings.headerTitleColor)el.style.color=displaySettings.headerTitleColor;
+  el.style.fontSize=(to.tabTitleSize||displaySettings.headerTitleSize||'')?(to.tabTitleSize||displaySettings.headerTitleSize)+'px':'';
+  el.style.color=to.tabTitleColor||displaySettings.headerTitleColor||'';
   if(displaySettings.headerTitleFont)el.style.fontFamily="'"+displaySettings.headerTitleFont+"',sans-serif";
   const dl=document.getElementById('page-desc');dl.textContent=defDesc;
-  if(displaySettings.headerDescSize)dl.style.fontSize=displaySettings.headerDescSize+'px';
-  if(displaySettings.headerDescColor)dl.style.color=displaySettings.headerDescColor;
+  dl.style.fontSize=(to.tabDescSize||displaySettings.headerDescSize||'')?(to.tabDescSize||displaySettings.headerDescSize)+'px':'';
+  dl.style.color=to.tabDescColor||displaySettings.headerDescColor||'';
 }
 
 /* ══════════ TYPOGRAPHY CASCADE: module → tab → global → fallback ══════════ */
@@ -172,7 +176,17 @@ function renderGrid(){
     return oa-ob;
   });
   if(!mods.length){g.innerHTML='<div class="empty-state">Aucun module dans cette catégorie.</div>';return}
-  g.innerHTML=mods.map((m,i)=>renderCard(m,i)).join('');
+  /* Separate fiches IA from other modules in destinations tab */
+  if(activeTab==='destinations'){
+    const fiches=mods.filter(m=>m.type==='focus');
+    const others=mods.filter(m=>m.type!=='focus');
+    let html='';
+    if(others.length)html+=others.map((m,i)=>renderCard(m,i)).join('');
+    if(fiches.length)html+=`<div style="grid-column:1/-1;padding:18px 0 8px;border-top:2px solid var(--border);margin-top:10px"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)">📄 Fiches destinations IA (${fiches.length})</div></div>`+fiches.sort((a,b)=>(b.generatedAt||'').localeCompare(a.generatedAt||'')).map((m,i)=>renderCard(m,i+others.length)).join('');
+    g.innerHTML=html;
+  } else {
+    g.innerHTML=mods.map((m,i)=>renderCard(m,i)).join('');
+  }
   if(mods.find(m=>m.type==='ai-chat'))renderAI();
   setTimeout(renderDataviz,100);
   setTimeout(initCarousels,200);
@@ -331,7 +345,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
         }
       });
       contentHtml+='</ul>';
-      const isOpen=si===0?' open':'';
+      const isOpen='';
       return`<div class="fiche-section${isOpen}"><div class="fiche-section-header" onclick="this.parentElement.classList.toggle('open')"><div class="fiche-section-icon" style="background:${c};color:#fff">${icon}</div><div class="fiche-section-title" style="color:${c}">${E(s.title)}</div><svg class="fiche-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fiche-section-content">${contentHtml}</div></div>`;
     }).join('');
     return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${m.photo?`<img class="card-img" src="${E(m.photo)}" style="object-fit:cover;height:180px">`:''}
@@ -466,7 +480,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
       artsHtml=`<blockquote style="margin:12px 0;padding:16px 20px;background:var(--border-light);border-radius:var(--radius-xs);border-left:3px solid ${ac};font-style:italic;font-size:14px;line-height:1.6;color:var(--text-body)">${E(quoteText)}</blockquote>${restArts.length?`<div class="expert-articles">${restArts.map(a=>`<a class="expert-article" href="${E(a.url)}" target="_blank">${showImg&&a.image?`<img class="expert-article-img" src="${E(a.image)}" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px" onerror="this.style.display='none'">`:''}<div class="expert-article-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`:''}`;
     } else if(style==='mosaic-alt'){
       const big=visibleArts[0],rest=visibleArts.slice(1);
-      artsHtml=big?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><a href="${E(big.url)}" target="_blank" style="grid-row:span 2;text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&big.image?`<img src="${E(big.image)}" style="width:100%;height:100%;min-height:${gridImgH*2}px;object-fit:cover" onerror="this.style.display='none'">`:''}
+      artsHtml=big?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><a href="${E(big.url)}" target="_blank" style="grid-row:span 2;text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&big.image?`<img src="${E(big.image)}" style="width:100%;height:${featImgH||gridImgH*2}px;object-fit:cover" onerror="this.style.display='none'">`:''}
       <div style="padding:12px"><div style="font-weight:700;color:${ac};${ty.titleStyle}">${E(big.title)}</div></div></a>${rest.map(a=>`<a href="${E(a.url)}" target="_blank" style="text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&a.image?`<img src="${E(a.image)}" style="width:100%;height:${gridImgH}px;object-fit:cover" onerror="this.style.display='none'">`:''}<div style="padding:8px 10px;font-weight:600;${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`:''
     } else {
       /* Default: list */
@@ -547,7 +561,10 @@ function autoResizeIframe(iframe){
 /* ══════════ IFRAME RESIZE (pour l'embed sur site web) ══════════ */
 function notifyParentResize(){
   try{
-    const h=document.documentElement.scrollHeight;
+    const cards=document.querySelectorAll('.card');
+    let maxBot=0;
+    cards.forEach(c=>{const r=c.getBoundingClientRect();const bot=r.bottom+window.scrollY;if(bot>maxBot)maxBot=bot});
+    const h=maxBot?Math.ceil(maxBot+40):document.documentElement.scrollHeight;
     if(window.parent!==window){
       window.parent.postMessage({type:'tourmag-resize',height:h},'*');
     }
