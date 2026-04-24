@@ -52,6 +52,42 @@
 .dataviz-canvas{width:100%;max-height:280px}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(6,1fr);gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-full{grid-column:span 6}.card.w-three-quarters,.card.w-two-thirds,.card.w-half{grid-column:span 3}.card.w-one-third,.card.w-one-quarter,.card.sz-small{grid-column:span 3}.card.sz-xl{grid-column:span 6}.card.sz-large,.card.sz-medium{grid-column:span 3}}
 @media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.grid{grid-template-columns:1fr;gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
+
+/* Fiche destination modal */
+.fiche-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;display:none;justify-content:center;align-items:flex-start;padding:30px;overflow-y:auto;backdrop-filter:blur(4px)}
+.fiche-modal-bg.show{display:flex}
+.fiche-modal{background:#fff;border-radius:16px;width:100%;max-width:860px;overflow:hidden;animation:slideUp .3s ease;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.fiche-hero{position:relative;height:280px;background-size:cover;background-position:center;display:flex;align-items:flex-end}
+.fiche-hero-overlay{position:absolute;inset:0;background:linear-gradient(transparent 30%,rgba(0,0,0,.7))}
+.fiche-hero-content{position:relative;z-index:1;padding:30px 36px;color:#fff;width:100%}
+.fiche-hero-title{font-family:var(--font-display);font-size:36px;font-weight:800;letter-spacing:-1px;text-shadow:0 2px 8px rgba(0,0,0,.3)}
+.fiche-hero-sub{font-size:12px;text-transform:uppercase;letter-spacing:2px;opacity:.8;margin-top:4px}
+.fiche-close{position:absolute;top:16px;right:16px;z-index:2;width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.4);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .2s;backdrop-filter:blur(4px)}.fiche-close:hover{background:rgba(0,0,0,.7)}
+.fiche-modal-body{padding:30px 36px 40px}
+.fiche-summary{font-size:15px;line-height:1.7;color:#57534E;font-style:italic;border-left:3px solid var(--accent);padding-left:16px;margin-bottom:28px}
+.fiche-sections{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.fiche-sect{border-radius:12px;padding:20px 22px;background:#F8FAFC;border:1px solid #E2E8F0;transition:all .2s}
+.fiche-sect:hover{background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.06);border-color:#CBD5E1}
+.fiche-sect-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.fiche-sect-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fiche-sect-icon svg{stroke:#fff}
+.fiche-sect-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.fiche-sect ul{margin:0;padding:0 0 0 16px;font-size:13.5px;line-height:1.7;color:#475569}
+.fiche-sect li{margin-bottom:3px}
+.fiche-sect li.sub-head{font-weight:600;list-style:none;margin-left:-16px;margin-top:8px}
+/* Dest gallery */
+.dest-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;grid-column:1/-1}
+.dest-card{position:relative;border-radius:12px;overflow:hidden;cursor:pointer;height:180px;background-size:cover;background-position:center;transition:all .3s}
+.dest-card:hover{transform:scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.dest-card-overlay{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.6));display:flex;align-items:flex-end;padding:16px}
+.dest-card-name{color:#fff;font-family:var(--font-display);font-size:20px;font-weight:700;text-shadow:0 2px 6px rgba(0,0,0,.3)}
+.dest-search{grid-column:1/-1;display:flex;gap:10px;align-items:center;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-xs)}
+.dest-search input{flex:1;border:none;background:none;font-size:14px;outline:none;font-family:inherit;color:var(--text-dark)}
+.dest-search-results{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.dest-mini{border-radius:8px;overflow:hidden;cursor:pointer;height:100px;background-size:cover;background-position:center;position:relative;transition:all .2s}
+.dest-mini:hover{transform:scale(1.03)}
+.dest-mini-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:12px;font-weight:600;padding:6px 10px}
+@media(max-width:768px){.fiche-modal-bg{padding:10px}.fiche-hero{height:200px}.fiche-hero-title{font-size:26px}.fiche-sections{grid-template-columns:1fr}.fiche-modal-body{padding:20px}.dest-gallery{grid-template-columns:1fr 1fr}.dest-search-results{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -59,7 +95,8 @@
   <div class="mobile-bar"><button onclick="toggleSidebar()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button><span class="mobile-brand">TourMaG Toolbox</span><div style="width:40px"></div></div>
   <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
   <aside class="sidebar" id="sidebar"><div class="sb-brand"><div class="sb-logo">TourMaG Toolbox</div><div class="sb-tagline">Boîte à outils pro</div></div><nav class="sb-nav"><div class="sb-section">Navigation</div><div id="sidebar-nav"></div></nav></aside>
-  <main class="main"><div class="page-header"><div class="page-title" id="page-title">La Boîte à Outils du Pro</div><div class="page-desc" id="page-desc">Tous vos outils métier en un seul endroit.</div></div><div class="grid" id="grid"><div class="loading-spinner">Chargement…</div></div></main>
+<div class="fiche-modal-bg" id="fiche-modal-bg" onclick="if(event.target===this)closeFiche()"><div class="fiche-modal" id="fiche-modal"></div></div>
+    <main class="main"><div class="page-header"><div class="page-title" id="page-title">La Boîte à Outils du Pro</div><div class="page-desc" id="page-desc">Tous vos outils métier en un seul endroit.</div></div><div class="grid" id="grid"><div class="loading-spinner">Chargement…</div></div></main>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -91,11 +128,16 @@ function initFS(){
 function updateBrand(){
   const logoEl=document.querySelector('.sb-logo');
   if(logoEl){
-    if(displaySettings.sidebarLogoUrl){logoEl.innerHTML=`<img src="${displaySettings.sidebarLogoUrl}" style="max-height:36px;max-width:100%;object-fit:contain">`}
+    if(displaySettings.sidebarLogoUrl){logoEl.innerHTML=`<img src="${displaySettings.sidebarLogoUrl}" style="max-height:${displaySettings.sidebarLogoSize||36}px;max-width:100%;object-fit:contain">`}
     else{logoEl.textContent=displaySettings.sidebarTitle||displaySettings.dashboardTitle||'TourMaG Toolbox'}
   }
-  const tag=document.querySelector('.sb-tagline');if(tag)tag.textContent=displaySettings.sidebarTagline||displaySettings.dashboardDesc||'Boîte à outils pro';
-  const mBrand=document.querySelector('.mobile-brand');if(mBrand)mBrand.textContent=displaySettings.dashboardTitle||'TourMaG Toolbox';
+  const tag=document.querySelector('.sb-tagline');
+  if(tag){
+    if(displaySettings.hideSidebarTagline){tag.style.display='none'}
+    else{tag.style.display='';tag.textContent=displaySettings.sidebarTagline||displaySettings.dashboardDesc||'Boite a outils pro';if(displaySettings.sidebarTaglineSize)tag.style.fontSize=displaySettings.sidebarTaglineSize+'px'}
+  }
+  const mBrand=document.querySelector('.mobile-brand');if(mBrand)mBrand.textContent=displaySettings.sidebarTitle||displaySettings.dashboardTitle||'TourMaG Toolbox';
+  if(displaySettings.sidebarNavSize)document.querySelectorAll('.sb-item').forEach(el=>el.style.fontSize=displaySettings.sidebarNavSize+'px');
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('show')}
 function buildSidebar(){document.getElementById('sidebar-nav').innerHTML=navTabs.map(t=>`<button class="sb-item ${activeTab===t.id?'active':''}" onclick="switchTab('${t.id}')">${IC[t.icon]||IC.globe} ${t.label}</button>`).join('')}
@@ -307,7 +349,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
   const imgFit=m.imgFit||'cover';
   const imgTag=m.photo?`<img class="card-img" src="${E(m.photo)}" style="object-fit:${imgFit}${m.imgHeight?';height:'+m.imgHeight+'px':''}">`:'';
   const nb=m.noBorder?' no-border':'';
-  const bh=m.blockHeight?`;height:${m.blockHeight}px;overflow:auto`:'';
+  const bh=m.blockHeight?`;height:${m.blockHeight}px;overflow:hidden`:'';
   /* Width class: new field m.width or fallback from m.size */
   const wMap={'full':'w-full','three-quarters':'w-three-quarters','two-thirds':'w-two-thirds','half':'w-half','one-third':'w-one-third','one-quarter':'w-one-quarter'};
   const szFallback={'xl':'w-full','large':'w-half','medium':'w-half','small':'w-one-quarter'};
@@ -316,40 +358,8 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div>
     <div class="ai-wrap"><div class="ai-msgs" id="ai-msgs"></div><div class="ai-input-row"><input class="ai-input" id="ai-input" placeholder="Ex : Formalités Ouzbékistan ?" onkeydown="if(event.key==='Enter')sendAI()"><button class="ai-send" id="ai-send-btn" onclick="sendAI()">${IC.send} Envoyer</button></div></div></div></div>`;
   if(m.type==='focus'){
-    const ficheIcons=[
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
-    ];
-    const ficheColors=['#0891B2','#D97706','#059669','#7C3AED','#DC2626','#2563EB','#0D9488','#EA580C','#4F46E5','#B91C1C'];
-    const sects=(m.ficheData?.sections||[]).map((s,si)=>{
-      const c=ficheColors[si%ficheColors.length];
-      const icon=ficheIcons[si%ficheIcons.length];
-      const rawContent=s.content||'';
-      const lines=rawContent.split(/\n|(?:\. (?=[A-ZÀÉÈÊËÏÔÙÛÜÇ]))|(?:(?:^|\. )(?=\•|\-|\*))/g).filter(l=>l.trim());
-      let contentHtml='<ul>';
-      lines.forEach(l=>{
-        const lt=l.trim().replace(/^[\-\•\*]\s*/,'');
-        if(!lt)return;
-        if(lt.endsWith(':')||lt.endsWith(' :')){
-          contentHtml+=`<li class="fiche-sub" style="color:${c}">${E(lt)}</li>`;
-        } else {
-          contentHtml+=`<li style="color:var(--text-body)">${E(lt)}</li>`;
-        }
-      });
-      contentHtml+='</ul>';
-      const isOpen='';
-      return`<div class="fiche-section${isOpen}"><div class="fiche-section-header" onclick="this.parentElement.classList.toggle('open')"><div class="fiche-section-icon" style="background:${c};color:#fff">${icon}</div><div class="fiche-section-title" style="color:${c}">${E(s.title)}</div><svg class="fiche-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></div><div class="fiche-section-content">${contentHtml}</div></div>`;
-    }).join('');
-    return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${m.photo?`<img class="card-img" src="${E(m.photo)}" style="object-fit:cover;height:180px">`:''}
-    <div class="card-body" style="background:linear-gradient(180deg,#FDFBF7 0%,#FFF 100%)"><div class="fiche-carnet-header"><div class="fiche-carnet-flag" style="width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg></div><div><div class="fiche-carnet-title" style="${ty.titleStyle}">${E(m.title)}</div><div class="fiche-carnet-sub">FICHE PRATIQUE DESTINATION</div></div></div><div class="card-desc" style="margin-bottom:14px;${ty.descStyle};font-style:italic;color:#78716C">${E(m.description||'')}</div>${sects?`<div class="fiche-grid">${sects}</div>`:''}</div></div>`}
+    /* Render as photo card — click opens modal */
+    return`<div class="dest-card" style="background-image:url('${E(m.photo||'')}');animation-delay:${d}s" onclick="openFiche('${E(m.id)}')"><div class="dest-card-overlay"><div class="dest-card-name">${E(m.title)}</div></div></div>`}
   if(m.type==='crisis'){const bars=[35,55,70,60,80,65,45,75,90,70,55,40];return`<div class="card ${wClass}${nb} clickable" onclick="window.open('${E(m.url)}','_blank')" style="animation-delay:${d}s${bh}">${m.badge?`<div class="card-badge" style="background:${m.accent||'#DC2626'}">${E(m.badge)}</div>`:''}${imgTag}
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#DC2626'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div><div class="card-desc" style="${ty.descStyle}">${E(m.description||'')}</div>
     <div class="crisis-viz"><div class="crisis-stat"><div class="crisis-stat-val">7</div><div class="crisis-stat-label">Pays en alerte MAE</div></div><div class="crisis-stat"><div class="crisis-stat-val">-18%</div><div class="crisis-stat-label">Réservations zone</div></div><div class="crisis-sparkline">${bars.map(h=>`<div class="spark-bar" style="height:${h}%"></div>`).join('')}</div></div><div class="card-arrow">${IC.arrow}</div></div></div>`}
@@ -537,6 +547,49 @@ function initCarousels(){
     wrap._timer=setInterval(()=>{const next=(wrap._current+1)%slides.length;goSlide(wrap.id,next)},speed);
   });
 }
+
+/* ══════════ FICHE DESTINATION MODAL ══════════ */
+const ficheIcons=[
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+];
+const ficheColors=['#0891B2','#D97706','#059669','#7C3AED','#DC2626','#2563EB'];
+
+function openFiche(id){
+  const m=modules.find(x=>x.id===id);if(!m||!m.ficheData)return;
+  const sects=(m.ficheData.sections||[]).map((s,si)=>{
+    const c=ficheColors[si%ficheColors.length];
+    const icon=ficheIcons[si%ficheIcons.length];
+    const raw=s.content||'';
+    const items=raw.split(/\n|(?:\. (?=[A-Z\u00C0-\u00FF]))/g).filter(l=>l.trim());
+    let ul='<ul>';
+    items.forEach(l=>{const lt=l.trim().replace(/^[\-\u2022\*]\s*/,'');if(!lt)return;if(lt.endsWith(':')||lt.endsWith(' :')){ul+=`<li class="sub-head" style="color:${c}">${E(lt)}</li>`}else{ul+=`<li>${E(lt)}</li>`}});
+    ul+='</ul>';
+    return`<div class="fiche-sect"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${c}">${icon}</div><div class="fiche-sect-title" style="color:${c}">${E(s.title)}</div></div>${ul}</div>`;
+  }).join('');
+  document.getElementById('fiche-modal').innerHTML=`
+    <div class="fiche-hero" style="background-image:url('${E(m.photo||'')}')"><div class="fiche-hero-overlay"></div><button class="fiche-close" onclick="closeFiche()">&times;</button><div class="fiche-hero-content"><div class="fiche-hero-title">${E(m.title)}</div><div class="fiche-hero-sub">Fiche pratique destination</div></div></div>
+    <div class="fiche-modal-body">${m.description?`<div class="fiche-summary">${E(m.description)}</div>`:''}<div class="fiche-sections">${sects}</div></div>`;
+  document.getElementById('fiche-modal-bg').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeFiche(){document.getElementById('fiche-modal-bg').classList.remove('show');document.body.style.overflow=''}
+
+function filterDests(q){
+  const fiches=modules.filter(m=>m.type==='focus');
+  const results=document.getElementById('dest-results');
+  const gallery=document.getElementById('dest-gallery');
+  if(!q.trim()){results.style.display='none';if(gallery)gallery.style.display='';return}
+  if(gallery)gallery.style.display='none';
+  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  results.style.display='grid';
+  results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+}
+
 /* ══════════ AI ══════════ */
 function fmtAI(t){if(!t)return'';let h=E(t);h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/^[\-•] (.+)/gm,'<li>$1</li>');h=h.replace(/(<li>.*<\/li>)/gs,m=>'<ul style="margin:6px 0 6px 16px;padding:0">'+m+'</ul>');h=h.replace(/\n{3,}/g,'\n\n');h=h.replace(/\n/g,'<br>');return h}
 function renderAI(){const c=document.getElementById('ai-msgs');if(!c)return;c.innerHTML=aiMessages.map(m=>`<div class="ai-msg ${m.role}">${m.role==='bot'?fmtAI(m.text):E(m.text)}</div>`).join('')+(aiLoading?'<div class="ai-msg loading">Recherche…</div>':'');c.scrollTop=c.scrollHeight}
