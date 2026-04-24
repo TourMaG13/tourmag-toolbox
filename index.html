@@ -410,50 +410,70 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
   if(m.type==='expert'||m.type==='experts'){
     const maxArts=m.maxArticles??displaySettings.defaultArticleCount??3;
     const imgSz=m.articleImgSize??displaySettings.defaultArticleImgSize??72;
+    const gridImgH=m.rubGridImgHeight??displaySettings.defaultRubGridImgHeight??120;
     const showImg=m.showArticleImg!==false;
+    const showDesc=m.showArticleDesc!==false;
+    const showFeatDesc=m.showFeatDesc!==false;
     const allArts=m.articles||[];
     const featUrl=m.featuredArticleUrl||'';
     const featImgH=m.featuredImgHeight||displaySettings.defaultFeaturedImgHeight||160;
-    const style=m.expertStyle||displaySettings.defaultExpertStyle||'classic';
+    const style=m.expertStyle||displaySettings.defaultExpertStyle||'list';
+    const cols=m.rubMagazineCols||2;
     const eName=m.expertName||m.title||'';
     const eRole=m.expertRole||m.subtitle||'';
     const ePhoto=m.expertPhoto||m.photo||'';
     const ePage=m.expertPage||m.url||'';
+    const ac=m.accent||'var(--accent)';
     const avatarHtml=ePhoto?`<img src="${E(ePhoto)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.textContent='${eName.charAt(0)}'">`:`${eName.charAt(0)}`;
+    /* Expert header — reused across all styles */
+    const expertHeader=`<div class="expert-header"><div class="expert-avatar">${avatarHtml}</div><div><div class="expert-name" style="${ty.titleStyle}">${E(eName)}</div><div class="expert-role">${E(eRole)}</div></div></div>`;
     /* Featured article */
     let featHtml='';
-    if(m.featuredArticleTitle){
-      featHtml=`<a class="expert-featured-wrap" href="${E(featUrl||'#')}" target="_blank" style="display:block;text-decoration:none;color:inherit">${m.featuredArticleImg?`<img class="expert-featured-img" src="${E(m.featuredArticleImg)}" style="height:${featImgH}px" onerror="this.style.display='none'">`:''}
-      <div class="expert-featured-body"><div class="expert-featured-title">${E(m.featuredArticleTitle)}</div>${m.featuredArticleDesc?`<div class="expert-featured-desc">${E(m.featuredArticleDesc)}</div>`:''}</div></a>`;
+    if(m.featuredArticleTitle&&(style==='magazine'||style==='list')){
+      featHtml=`<a class="expert-featured-wrap" href="${E(featUrl||'#')}" target="_blank" style="display:block;text-decoration:none;color:inherit;margin:12px 0">${m.featuredArticleImg?`<img class="expert-featured-img" src="${E(m.featuredArticleImg)}" style="height:${featImgH}px" onerror="this.style.display='none'">`:''}
+      <div class="expert-featured-body"><div class="expert-featured-title" style="color:${ac};${m.featTitleSize?'font-size:'+m.featTitleSize+'px':ty.titleStyle}">${E(m.featuredArticleTitle)}</div>${(showFeatDesc&&m.featuredArticleDesc)?`<div class="expert-featured-desc" style="${m.featDescSize?'font-size:'+m.featDescSize+'px':ty.artDescStyle}">${E(m.featuredArticleDesc)}</div>`:''}</div></a>`;
     }
     /* Articles excluding featured */
     const visibleArts=allArts.filter(a=>a.url!==featUrl).slice(0,maxArts);
-    const artsHtml=visibleArts.map(a=>`<a class="expert-article" href="${E(a.url)}" target="_blank">${showImg?(a.image?`<img class="expert-article-img" src="${E(a.image)}" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px" onerror="this.style.display='none'">`:`<div class="expert-article-img" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px"></div>`):''}<div class="expert-article-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('');
     const linkAll=ePage?`<a class="expert-all-link" href="${E(ePage)}" target="_blank">${IC.arrow} Tous ses articles</a>`:'';
-    /* Style variants */
-    if(style==='card-h'){
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body" style="display:flex;gap:18px;align-items:flex-start">${ePhoto?`<img src="${E(ePhoto)}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;flex-shrink:0;border:3px solid var(--border)" onerror="this.style.display='none'">`:''}
-      <div style="flex:1"><div class="expert-name" style="${ty.titleStyle}">${E(eName)}</div><div class="expert-role">${E(eRole)}</div>${featHtml}<div class="expert-articles" style="margin-top:8px">${artsHtml}</div>${linkAll}</div></div></div>`}
-    if(style==='minimal'){
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body"><div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="expert-avatar" style="width:36px;height:36px;font-size:14px">${avatarHtml}</div><div><span class="expert-name" style="font-size:14px">${E(eName)}</span> <span class="expert-role">${E(eRole)}</span></div></div>
-      <div class="expert-articles">${visibleArts.map(a=>`<a class="expert-article" href="${E(a.url)}" target="_blank" style="padding:6px 10px"><div class="expert-article-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>${linkAll}</div></div>`}
-    if(style==='banner'){
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}">${ePhoto?`<div style="height:120px;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.6)),url('${E(ePhoto)}') center/cover;display:flex;align-items:flex-end;padding:16px"><div><div style="color:#fff;font-size:18px;font-weight:700">${E(eName)}</div><div style="color:rgba(255,255,255,.7);font-size:12px">${E(eRole)}</div></div></div>`:''}
-      <div class="card-body">${featHtml}<div class="expert-articles">${artsHtml}</div>${linkAll}</div></div>`}
-    if(style==='magazine'){
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body" style="display:grid;grid-template-columns:180px 1fr;gap:20px;align-items:start">${ePhoto?`<div><img src="${E(ePhoto)}" style="width:180px;height:220px;object-fit:cover;border-radius:var(--radius-xs)" onerror="this.parentElement.style.display='none'"><div class="expert-name" style="margin-top:8px">${E(eName)}</div><div class="expert-role">${E(eRole)}</div></div>`:'<div></div>'}
-      <div>${featHtml}<div class="expert-articles">${artsHtml}</div>${linkAll}</div></div></div>`}
-    if(style==='timeline'){
-      const timeArts=visibleArts.map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<div style="display:flex;gap:12px;align-items:flex-start;position:relative;padding-left:20px;border-left:2px solid ${m.accent||'var(--accent)'};margin-left:6px;padding-bottom:14px"><div style="position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:${m.accent||'var(--accent)'};border:2px solid var(--bg-card)"></div><div>${dt?`<div style="font-size:10px;color:var(--text-muted);font-weight:600;margin-bottom:2px">${dt}</div>`:''}<a href="${E(a.url)}" target="_blank" style="font-size:13px;font-weight:500;text-decoration:none;color:var(--text-dark)">${E(a.title)}</a></div></div>`}).join('');
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body"><div class="expert-header"><div class="expert-avatar">${avatarHtml}</div><div><div class="expert-name">${E(eName)}</div><div class="expert-role">${E(eRole)}</div></div></div>${featHtml}<div style="margin-top:14px">${timeArts}</div>${linkAll}</div></div>`}
-    if(style==='quote'){
+    let artsHtml='';
+    /* ═══ UNIFIED STYLES ═══ */
+    if(style==='grid'||style==='mosaic'){
+      artsHtml=`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px;margin-top:12px">${m.featuredArticleTitle?`<a href="${E(featUrl||'#')}" target="_blank" style="grid-column:1/-1;text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${m.featuredArticleImg?`<img src="${E(m.featuredArticleImg)}" style="width:100%;height:${featImgH}px;object-fit:cover;display:block" onerror="this.style.display='none'">`:''}
+      <div style="padding:12px 14px"><div style="font-weight:700;color:${ac};${m.featTitleSize?'font-size:'+m.featTitleSize+'px':ty.titleStyle}">${E(m.featuredArticleTitle)}</div>${(showFeatDesc&&m.featuredArticleDesc)?`<div style="color:var(--text-body);margin-top:4px;${m.featDescSize?'font-size:'+m.featDescSize+'px':''}">${E(m.featuredArticleDesc)}</div>`:''}</div></a>`:''}${visibleArts.map(a=>`<a href="${E(a.url)}" target="_blank" style="text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&a.image?`<img src="${E(a.image)}" style="width:100%;height:${gridImgH}px;object-fit:cover;display:block" onerror="this.style.display='none'">`:''}<div style="padding:10px 12px"><div style="font-weight:600;line-height:1.3;${ty.artTitleStyle}">${E(a.title)}</div>${(showDesc&&a.description)?`<div style="color:var(--text-muted);margin-top:4px;line-height:1.4;${ty.artDescStyle}">${E(a.description.substring(0,80))}…</div>`:''}</div></a>`).join('')}</div>`;
+      featHtml='';
+    } else if(style==='carousel'){
+      artsHtml=`<div class="rub-carousel" style="margin-top:12px">${visibleArts.map(a=>`<a class="rub-carousel-item" href="${E(a.url)}" target="_blank">${showImg&&a.image?`<img class="rub-carousel-img" src="${E(a.image)}" style="height:${gridImgH}px" onerror="this.style.display='none'">`:''}<div class="rub-carousel-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`;
+    } else if(style==='magazine'){
+      let magFeat='',magRest=visibleArts;
+      if(!m.featuredArticleTitle&&visibleArts.length){
+        const f=visibleArts[0];magRest=visibleArts.slice(1);
+        magFeat=`<a href="${E(f.url)}" target="_blank" style="display:block;text-decoration:none;color:inherit;margin:12px 0;border-radius:var(--radius-xs);overflow:hidden;border:1px solid ${ac}">${showImg&&f.image?`<img src="${E(f.image)}" style="width:100%;height:${featImgH}px;object-fit:cover;display:block" onerror="this.style.display='none'">`:''}
+        <div style="padding:12px 14px"><div style="font-weight:700;color:${ac};${ty.titleStyle}">${E(f.title)}</div>${(showDesc&&f.description)?`<div style="color:var(--text-body);margin-top:4px;line-height:1.5;${ty.artDescStyle}">${E(f.description)}</div>`:''}</div></a>`;
+      }
+      const magGrid=magRest.length?`<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:10px">${magRest.map(a=>`<a href="${E(a.url)}" target="_blank" style="text-decoration:none;color:inherit;display:flex;gap:8px;align-items:flex-start;padding:8px;background:var(--border-light);border-radius:var(--radius-xs)">${showImg&&a.image?`<img src="${E(a.image)}" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px;object-fit:cover;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">`:''}
+      <div><div style="font-weight:500;line-height:1.3;${ty.artTitleStyle}">${E(a.title)}</div>${(showDesc&&a.description)?`<div style="color:var(--text-muted);margin-top:3px;line-height:1.4;${ty.artDescStyle}">${E(a.description.substring(0,100))}</div>`:''}</div></a>`).join('')}</div>`:'';
+      artsHtml=`<div>${magFeat}${magGrid}</div>`;
+    } else if(style==='cards-wide'){
+      artsHtml=`<div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">${visibleArts.map(a=>`<a href="${E(a.url)}" target="_blank" style="text-decoration:none;color:inherit;display:flex;gap:14px;align-items:flex-start;padding:12px;background:var(--border-light);border-radius:var(--radius-xs)">${showImg&&a.image?`<img src="${E(a.image)}" style="width:${imgSz+40}px;height:${Math.round((imgSz+40)*0.65)}px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display='none'">`:''}
+      <div><div style="font-weight:600;line-height:1.3;${ty.artTitleStyle}">${E(a.title)}</div>${(showDesc&&a.description)?`<div style="color:var(--text-muted);margin-top:4px;line-height:1.45;${ty.artDescStyle}">${E(a.description)}</div>`:''}</div></a>`).join('')}</div>`;
+    } else if(style==='timeline'){
+      artsHtml=`<div style="margin-top:14px">${visibleArts.map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<div style="display:flex;gap:12px;align-items:flex-start;position:relative;padding-left:20px;border-left:2px solid ${ac};margin-left:6px;padding-bottom:14px"><div style="position:absolute;left:-6px;top:2px;width:10px;height:10px;border-radius:50%;background:${ac};border:2px solid var(--bg-card)"></div><div>${dt?`<div style="font-size:10px;color:var(--text-muted);font-weight:600;margin-bottom:2px">${dt}</div>`:''}<a href="${E(a.url)}" target="_blank" style="font-size:13px;font-weight:500;text-decoration:none;color:var(--text-dark);${ty.artTitleStyle}">${E(a.title)}</a></div></div>`}).join('')}</div>`;
+    } else if(style==='citation'){
       const firstArt=visibleArts[0];
       const quoteText=firstArt?.description||firstArt?.title||'';
-      return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div class="expert-avatar">${avatarHtml}</div><div><div class="expert-name">${E(eName)}</div><div class="expert-role">${E(eRole)}</div></div></div>
-      <blockquote style="margin:0 0 14px;padding:16px 20px;background:var(--border-light);border-radius:var(--radius-xs);border-left:3px solid ${m.accent||'var(--accent)'};font-style:italic;font-size:14px;line-height:1.6;color:var(--text-body)">${E(quoteText)}</blockquote>
-      ${featHtml}<div class="expert-articles">${artsHtml}</div>${linkAll}</div></div>`}
-    /* Default: classic */
-    return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body"><div class="expert-block"><div class="expert-header"><div class="expert-avatar">${avatarHtml}</div><div><div class="expert-name" style="${ty.titleStyle}">${E(eName)}</div><div class="expert-role">${E(eRole)}</div></div></div>${featHtml}<div class="expert-articles">${artsHtml}</div>${linkAll}</div></div></div>`}
+      const restArts=visibleArts.slice(1);
+      artsHtml=`<blockquote style="margin:12px 0;padding:16px 20px;background:var(--border-light);border-radius:var(--radius-xs);border-left:3px solid ${ac};font-style:italic;font-size:14px;line-height:1.6;color:var(--text-body)">${E(quoteText)}</blockquote>${restArts.length?`<div class="expert-articles">${restArts.map(a=>`<a class="expert-article" href="${E(a.url)}" target="_blank">${showImg&&a.image?`<img class="expert-article-img" src="${E(a.image)}" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px" onerror="this.style.display='none'">`:''}<div class="expert-article-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`:''}`;
+    } else if(style==='mosaic-alt'){
+      const big=visibleArts[0],rest=visibleArts.slice(1);
+      artsHtml=big?`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px"><a href="${E(big.url)}" target="_blank" style="grid-row:span 2;text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&big.image?`<img src="${E(big.image)}" style="width:100%;height:100%;min-height:${gridImgH*2}px;object-fit:cover" onerror="this.style.display='none'">`:''}
+      <div style="padding:12px"><div style="font-weight:700;color:${ac};${ty.titleStyle}">${E(big.title)}</div></div></a>${rest.map(a=>`<a href="${E(a.url)}" target="_blank" style="text-decoration:none;color:inherit;border-radius:var(--radius-xs);overflow:hidden;background:var(--border-light)">${showImg&&a.image?`<img src="${E(a.image)}" style="width:100%;height:${gridImgH}px;object-fit:cover" onerror="this.style.display='none'">`:''}<div style="padding:8px 10px;font-weight:600;${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`:''
+    } else {
+      /* Default: list */
+      artsHtml=`<div class="expert-articles">${visibleArts.map(a=>`<a class="expert-article" href="${E(a.url)}" target="_blank">${showImg?(a.image?`<img class="expert-article-img" src="${E(a.image)}" style="width:${imgSz}px;height:${Math.round(imgSz*0.75)}px" onerror="this.style.display='none'">`:''):''}<div class="expert-article-title" style="${ty.artTitleStyle}">${E(a.title)}</div></a>`).join('')}</div>`;
+    }
+    return`<div class="card ${wClass}${nb}" style="animation-delay:${d}s${bh}"><div class="card-body">${expertHeader}${featHtml}${artsHtml}${linkAll}</div></div>`}
+
   /* Video module — YouTube/Vimeo embed */
   if(m.type==='video'){
     let embedUrl=m.videoUrl||m.url||'';
