@@ -439,7 +439,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
     <div class="kpi-row"><div class="kpi-val" style="color:${m.accent||'#2563EB'}">${E(m.kpiValue||'')}</div><div><div class="kpi-label">${E(m.kpiLabel||'')}</div></div><div class="kpi-trend" style="color:${m.trendDirection==='down'?'#DC2626':m.trendDirection==='flat'?'#94A3B8':'#059669'}">${m.trendDirection==='down'?IC.trendDown:m.trendDirection==='flat'?IC.trendFlat:IC.trendUp}</div></div><div class="card-arrow">${IC.arrow}</div></div></div>`;
   if(m.type==='rubrique'){
     const style=m.rubriqueStyle||displaySettings.defaultRubriqueStyle||'list';
-    const maxA=m.rubArticleCount??displaySettings.defaultRubArticleCount??6;
+    const maxA=(m.rubArticleCount!=null&&m.rubArticleCount>0)?m.rubArticleCount:((m.maxArticles!=null&&m.maxArticles>0)?m.maxArticles:(displaySettings.defaultRubArticleCount||6));
     const artImgSz=m.rubArticleImgSize??displaySettings.defaultRubArticleImgSize??100;
     const gridImgH=m.rubGridImgHeight??displaySettings.defaultRubGridImgHeight??100;
     const featUrl=m.featuredArticleUrl||'';
@@ -503,7 +503,7 @@ function renderCard(m,idx){const d=idx*.06;const ty=getTypo(m);
     <div class="card-body"><div class="card-cat" style="color:${m.accent||'#0891B2'};${ty.subtitleStyle}">${E(m.subtitle||'')}</div><div class="card-title" style="${ty.titleStyle}">${E(m.title)}</div><div class="card-desc" style="${ty.descStyle}">${E(m.description||'')}</div><div class="dataviz-wrap">${dvInner}</div>${m.url?`<div class="card-arrow">${IC.arrow}</div>`:''}</div></div>`}
   /* Expert module (from RSS or manual) */
   if(m.type==='expert'||m.type==='experts'){
-    const maxArts=m.maxArticles??displaySettings.defaultArticleCount??3;
+    const maxArts=(m.maxArticles!=null&&m.maxArticles>0)?m.maxArticles:(displaySettings.defaultArticleCount||3);
     const imgSz=m.articleImgSize??displaySettings.defaultArticleImgSize??72;
     const gridImgH=m.rubGridImgHeight??displaySettings.defaultRubGridImgHeight??120;
     const showImg=m.showArticleImg!==false;
