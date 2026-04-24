@@ -197,15 +197,56 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
 
 def generate_dest_fiche(db, country, photo=""):
     print(f"═══ FICHE: {country} ═══")
-    prompt = f'Fiche destination pro "{country}" pour agents de voyages français. JSON: {{"summary":"...","sections":[{{"title":"Conseils MAE","content":"..."}},{{"title":"Formalités","content":"..."}},{{"title":"Dynamisme touristique","content":"..."}},{{"title":"Points d\'intérêt","content":"..."}},{{"title":"Tour-opérateurs","content":"..."}},{{"title":"Conseils de vente","content":"..."}}]}}'
+    prompt = f"""Fiche destination pro "{country}" pour agents de voyages français. JSON valide uniquement :
+{{
+  "summary": "Résumé 2-3 phrases",
+  "photoKeywords": ["5 mots-clés photo pour unsplash"],
+  "essentials": {{
+    "visa": "Résumé court visa/passeport",
+    "sante": "Résumé court santé/vaccins",
+    "devise": "Résumé court devise/budget"
+  }},
+  "sections": [
+    {{"title": "Conseils MAE", "group": "pratique", "content": "- Point 1\\n- Point 2\\n- Point 3"}},
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail\\n- Vaccins : détail"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation\\n- Tendances\\n- Saisonnalité"}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description\\n- Lieu 2 : description"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité\\n- TO 2 : spécialité"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Argument 1\\n- Cible\\n- Panier moyen"}}
+  ]
+}}
+IMPORTANT: Utilise des retours à la ligne (\\n) et tirets (-) pour séparer chaque point."""
     text = call_haiku(prompt)
     if not text: return None
     try: fiche_data = json.loads(re.sub(r'```json|```','',text).strip())
     except: print("  JSON err"); return None
     slug = re.sub(r'[^a-z0-9]','-',country.lower()); mod_id = f"dest-{slug}-{int(time.time())}"
     if not photo: photo = f"https://source.unsplash.com/800x400/?{requests.utils.quote(country)},travel"
-    db.collection("modules").document(mod_id).set({"title":country,"subtitle":"Focus destination de la semaine","description":fiche_data.get("summary",""),"url":"","photo":photo,"category":"destinations","categories":["destinations","dashboard"],"size":"large","accent":"#D97706","type":"focus","active":True,"order":0,"badge":"","ficheData":fiche_data,"generatedAt":datetime.now(timezone.utc).isoformat(),"source":"ia-haiku"})
-    print(f"  → {mod_id}"); return mod_id
+    # Build photo URLs from keywords
+    keywords = fiche_data.get("photoKeywords", [f"{country} travel", f"{country} landmark", f"{country} nature", f"{country} culture", f"{country} food"])
+    photos = []
+    for kw in keywords[:5]:
+        img = get_og_image(f"https://source.unsplash.com/600x400/?{requests.utils.quote(kw)}")
+        photos.append(img if img else f"https://source.unsplash.com/600x400/?{requests.utils.quote(kw)}")
+        time.sleep(0.3)
+    essentials = fiche_data.get("essentials", {})
+    db.collection("modules").document(mod_id).set({
+        "title": country,
+        "subtitle": "Focus destination de la semaine",
+        "description": fiche_data.get("summary", ""),
+        "url": "", "photo": photo,
+        "category": "destinations",
+        "categories": ["destinations", "dashboard"],
+        "size": "large", "accent": "#D97706",
+        "type": "focus", "active": True, "order": 0, "badge": "",
+        "ficheData": fiche_data,
+        "essentials": essentials,
+        "photoKeywords": keywords,
+        "photos": photos,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+        "source": "ia-haiku"
+    })
+    print(f"  → {mod_id} ({len(photos)} photos)"); return mod_id
 
 def main():
     print(f"╔══ TourMaG Scraper v3 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
