@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-TourMaG Toolbox — Scraper RSS + IA (v3)
+TourMaG Toolbox — Scraper RSS + IA (v5)
 - Experts: un module par expert dans `modules/` (type=expert)
 - Destinations singulières: UN SEUL module rubrique dans `modules/` (type=rubrique, rssSource défini)
-  avec les articles dans le champ `articles[]`
+- Thématiques abonné: articles scrapés dans `thematiques/{id}` pour personnalisation dashboard
 - Ne touche jamais aux champs d'affichage configurés dans l'admin
 """
 import os, json, re, time, requests
@@ -35,7 +35,6 @@ EXPERT_FEEDS = [
     {"tag":"guillaume-vigneron","name":"Guillaume Vigneron","role":"Expert","rss":"https://www.tourmag.com/xml/syndication.rss?t=guillaume+vigneron","page":"https://www.tourmag.com/tags/guillaume+vigneron/"},
 ]
 
-# RSS sources for auto-rubriques — add more here to create new auto-rubriques
 RSS_RUBRIQUES = [
     {
         "id": "rss-rubrique-dest-singulieres",
@@ -47,6 +46,56 @@ RSS_RUBRIQUES = [
         "accent": "#EC4899",
         "max_items": 10,
         "url": "https://www.tourmag.com/tags/destinations+singulieres/",
+    },
+]
+
+# ══════════ THÉMATIQUES ABONNÉ ══════════
+# RSS via proxy Vercel (prioritaire) + fallback HTML scraping
+THEMATIC_FEEDS = [
+    {
+        "id": "thema-aerien",
+        "title": "Aérien",
+        "icon": "✈️",
+        "accent": "#0EA5E9",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/airmag",
+        "html_url": "https://www.tourmag.com/airmag/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-croisieres",
+        "title": "Croisières",
+        "icon": "🚢",
+        "accent": "#0891B2",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/cruisemag",
+        "html_url": "https://www.tourmag.com/cruisemag/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-destinations",
+        "title": "Destinations",
+        "icon": "🌍",
+        "accent": "#059669",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/dmcmag",
+        "html_url": "https://www.tourmag.com/dmcmag/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-tech",
+        "title": "Tech",
+        "icon": "💻",
+        "accent": "#7C3AED",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/la-travel-tech",
+        "html_url": "https://www.tourmag.com/latraveltech/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-luxe",
+        "title": "Luxe",
+        "icon": "💎",
+        "accent": "#D97706",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/luxury-travelmag",
+        "html_url": "https://www.tourmag.com/luxurytravelmag/",
+        "max_items": 5,
     },
 ]
 
@@ -248,12 +297,138 @@ IMPORTANT: Utilise des retours à la ligne (\\n) et tirets (-) pour séparer cha
     })
     print(f"  → {mod_id} ({len(photos)} photos)"); return mod_id
 
+# ══════════ HTML FALLBACK SCRAPER (BeautifulSoup) ══════════
+def scrape_html_articles(url, max_items=5):
+    """Scrape articles from a TourMaG rubrique page as fallback when RSS fails."""
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        print("  WARN: bs4 not installed, skipping HTML fallback")
+        return []
+    html = fetch_url(url)
+    if not html:
+        return []
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+        results = []
+        # TourMaG uses various article containers — try several selectors
+        articles = (
+            soup.select('article') or
+            soup.select('.post-item') or
+            soup.select('.article-item') or
+            soup.select('.card-article') or
+            soup.select('[class*="article"]') or
+            soup.select('a[href*="tourmag.com"]')
+        )
+        for art in articles[:max_items * 2]:  # Get more candidates to filter
+            # Extract link
+            link_el = art if art.name == 'a' else art.find('a', href=True)
+            if not link_el or not link_el.get('href'):
+                continue
+            link = link_el['href']
+            if not link.startswith('http'):
+                link = 'https://www.tourmag.com' + link
+            # Skip non-article links
+            if '/tags/' in link or '#' == link or len(link) < 30:
+                continue
+            # Extract title
+            title_el = art.find(['h1', 'h2', 'h3', 'h4'])
+            title = title_el.get_text(strip=True) if title_el else (link_el.get_text(strip=True) if link_el else '')
+            if not title or len(title) < 10:
+                continue
+            # Extract image
+            img_el = art.find('img')
+            image = ''
+            if img_el:
+                image = img_el.get('src') or img_el.get('data-src') or img_el.get('data-lazy-src') or ''
+                if image and not image.startswith('http'):
+                    image = 'https://www.tourmag.com' + image
+            # Extract description
+            desc_el = art.find('p') or art.find('[class*="desc"]') or art.find('[class*="excerpt"]')
+            desc = desc_el.get_text(strip=True)[:300] if desc_el else ''
+            # Extract date
+            date_el = art.find('time') or art.find('[class*="date"]')
+            date_str = ''
+            if date_el:
+                date_str = date_el.get('datetime') or date_el.get_text(strip=True)
+            results.append({
+                "title": title,
+                "url": link,
+                "description": desc,
+                "image": image,
+                "date": date_str,
+            })
+            if len(results) >= max_items:
+                break
+        # Deduplicate by URL
+        seen = set()
+        deduped = []
+        for r in results:
+            if r['url'] not in seen:
+                seen.add(r['url'])
+                deduped.append(r)
+        return deduped[:max_items]
+    except Exception as e:
+        print(f"  WARN HTML scrape {url[:50]}: {e}")
+        return []
+
+# ══════════ THEMATIQUES ABONNÉ → thematiques/{id} ══════════
+def scrape_thematiques(db):
+    """Scrape les 5 thématiques pour les abonnés. RSS prioritaire, fallback HTML."""
+    print("═══ THÉMATIQUES ABONNÉ ═══")
+    # Also write the catalog to config/thematiques for the dashboard to read
+    catalog = []
+    for thema in THEMATIC_FEEDS:
+        doc_id = thema["id"]
+        print(f"  [{doc_id}] {thema['title']}...", end=" ", flush=True)
+        # 1. Try RSS first
+        articles = []
+        xml = fetch_url(thema["rss"])
+        if xml and len(xml) > 100:
+            articles = parse_rss(xml, max_items=thema["max_items"])
+            print(f"RSS={len(articles)}", end=" ", flush=True)
+        # 2. Fallback to HTML scraping if RSS failed or returned nothing
+        if not articles:
+            print("RSS fail, trying HTML...", end=" ", flush=True)
+            articles = scrape_html_articles(thema["html_url"], max_items=thema["max_items"])
+            print(f"HTML={len(articles)}", end=" ", flush=True)
+        # 3. Enrich missing images via og:image
+        for art in articles:
+            if not art["image"] and art["url"]:
+                art["image"] = get_og_image(art["url"])
+                time.sleep(0.3)
+        # 4. Write to Firestore thematiques collection
+        db.collection("thematiques").document(doc_id).set({
+            "id": doc_id,
+            "title": thema["title"],
+            "icon": thema["icon"],
+            "accent": thema["accent"],
+            "articles": articles,
+            "updatedAt": datetime.now(timezone.utc).isoformat(),
+            "source": "rss" if xml and len(xml) > 100 else "html-scrape",
+        })
+        catalog.append({
+            "id": doc_id,
+            "title": thema["title"],
+            "icon": thema["icon"],
+            "accent": thema["accent"],
+            "articleCount": len(articles),
+        })
+        print(f"→ {len(articles)} articles")
+    # Write catalog for dashboard to enumerate available thematiques
+    db.collection("config").document("thematiques").set({
+        "catalog": catalog,
+        "updatedAt": datetime.now(timezone.utc).isoformat(),
+    })
+    print(f"  → {len(THEMATIC_FEEDS)} thématiques, catalogue mis à jour.")
+
 def main():
-    print(f"╔══ TourMaG Scraper v3 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
+    print(f"╔══ TourMaG Scraper v5 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
     db = init_firebase()
     scrape_experts(db)
     scrape_rss_rubriques(db)
     scrape_dynamic_rss(db)
+    scrape_thematiques(db)
     dest = os.environ.get("GENERATE_DEST_FICHE","")
     if dest: generate_dest_fiche(db, dest, os.environ.get("DEST_FICHE_PHOTO",""))
     print("╚══ Done ══╝")
