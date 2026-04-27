@@ -484,9 +484,9 @@ function renderGrid(){
     let html=finalMods.map((m,i)=>renderCard(m,i)).join('');
     /* Add customize panel and thema blocks on dashboard tab */
     if(activeTab==='dashboard'){
-      /* Show customize button */
+      /* Show customize button only if logged in */
       const custBtn=document.getElementById('customize-btn');
-      if(custBtn)custBtn.style.display='';
+      if(custBtn)custBtn.style.display=currentUser?'':'none';
       /* Render customize panel (hidden by default) */
       html=renderCustomizePanel(mods)+html;
       /* Render thematique blocks */
