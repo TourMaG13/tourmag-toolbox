@@ -15,7 +15,37 @@
 .sb-nav{flex:1;padding:16px 10px;overflow-y:auto}.sb-section{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(148,163,184,.35);padding:16px 12px 6px;font-weight:600}
 .sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;color:var(--text-sidebar);font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all .2s;margin-bottom:2px;font-family:var(--font-body)}.sb-item:hover{background:var(--bg-sidebar-hover);color:#E2E8F0}.sb-item.active{background:var(--bg-sidebar-active);color:var(--text-sidebar-active);font-weight:600}.sb-item svg{opacity:.6;flex-shrink:0;width:18px;height:18px}.sb-item:hover svg{opacity:.85}.sb-item.active svg{opacity:1;color:var(--text-sidebar-active)}
 .mobile-bar{display:none;position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--bg-sidebar);z-index:90;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.06)}.mobile-bar button{background:none;border:none;color:#CBD5E1;cursor:pointer}.mobile-brand{font-family:var(--font-display);font-weight:800;font-size:17px;background:linear-gradient(135deg,#06B6D4,#22D3EE);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}.overlay.show{display:block}
-.main{flex:1;margin-left:var(--sidebar-w)}.page-header{padding:28px 36px 22px;background:linear-gradient(180deg,var(--accent-light),var(--bg));border-bottom:1px solid var(--border)}.page-title{font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:-.5px}.page-desc{color:var(--text-body);font-size:14px;margin-top:6px;max-width:640px;line-height:1.55}
+.main{flex:1;margin-left:var(--sidebar-w)}.page-header{padding:28px 36px 22px;background:linear-gradient(180deg,var(--accent-light),var(--bg));border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;align-items:center;gap:12px}.page-title{font-family:var(--font-display);font-size:28px;font-weight:800;letter-spacing:-.5px;flex:1}.page-desc{color:var(--text-body);font-size:14px;margin-top:0;max-width:640px;line-height:1.55;width:100%;order:3}
+/* Customize panel */
+.customize-panel{background:#fff;border:1px solid var(--border);border-radius:14px;padding:24px;margin:0;display:none;animation:fadeIn .2s ease;box-shadow:0 4px 16px rgba(0,0,0,.06);grid-column:1/-1}
+.customize-panel.show{display:block}
+.cust-section{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #F1F5F9}
+.cust-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.cust-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-muted);margin-bottom:10px}
+.cust-toggle{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:background .15s;user-select:none}
+.cust-toggle:hover{background:#F8FAFC}
+.cust-toggle input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+.cust-toggle-label{font-size:13px;font-weight:500;flex:1}
+.cust-toggle-icon{font-size:15px}
+.cust-thema{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.cust-thema-card{padding:10px 12px;border-radius:10px;border:2px solid #E2E8F0;cursor:pointer;transition:all .2s;text-align:center;user-select:none}
+.cust-thema-card.active{border-color:var(--accent);background:#F0FDFA;box-shadow:0 0 0 1px var(--accent)}
+.cust-thema-card:hover{border-color:#94A3B8}
+.cust-thema-icon{font-size:20px;margin-bottom:2px}
+.cust-thema-name{font-size:11px;font-weight:600}
+/* Thema blocks */
+.thema-block{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);background:#fff}
+.thema-block-header{padding:14px 18px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #F1F5F9}
+.thema-block-icon{font-size:18px}
+.thema-block-title{font-size:14px;font-weight:700;flex:1}
+.thema-block-badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.thema-article{display:flex;gap:12px;padding:10px 18px;border-bottom:1px solid #F8FAFC;text-decoration:none;color:inherit;transition:background .15s}
+.thema-article:last-child{border-bottom:none}
+.thema-article:hover{background:#FAFBFC}
+.thema-article-img{width:60px;height:44px;border-radius:6px;object-fit:cover;flex-shrink:0}
+.thema-article-info{flex:1;min-width:0}
+.thema-article-title{font-size:12.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.thema-article-date{font-size:10px;color:var(--text-muted);margin-top:2px}
 .loading-spinner{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);gap:12px}.loading-spinner::before{content:'';width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px;padding:28px 36px 44px;align-items:start;grid-auto-flow:dense}
 .card{background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;transition:all .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;position:relative;animation:cardIn .4s ease both;min-width:0}@keyframes cardIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}.card:hover{box-shadow:var(--shadow-lg);transform:translateY(-3px);border-color:#CBD5E1}.card.clickable{cursor:pointer}
@@ -142,9 +172,24 @@
   <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
   <aside class="sidebar" id="sidebar"><div class="sb-brand"><div class="sb-logo">TourMaG Toolbox</div><div class="sb-tagline">Boîte à outils pro</div></div><nav class="sb-nav"><div class="sb-section">Navigation</div><div id="sidebar-nav"></div></nav></aside>
 <div class="fiche-modal-bg" id="fiche-modal-bg" onclick="if(event.target===this)closeFiche()"><div class="fiche-modal" id="fiche-modal"></div></div>
-    <main class="main"><div class="page-header"><div class="page-title" id="page-title">La Boîte à Outils du Pro</div><div class="page-desc" id="page-desc">Tous vos outils métier en un seul endroit.</div></div><div class="grid" id="grid"><div class="loading-spinner">Chargement…</div></div></main>
+    <main class="main"><div class="page-header"><div class="page-title" id="page-title">La Boîte à Outils du Pro</div><div class="page-desc" id="page-desc">Tous vos outils métier en un seul endroit.</div><div style="display:flex;gap:8px;align-items:center" id="header-actions"><button id="customize-btn" onclick="toggleCustomizePanel()" style="display:none;padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--text-body);transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-body)'">⚙ Personnaliser</button><button id="auth-btn" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s" title="Se connecter"></button></div></div><div class="grid" id="grid"><div class="loading-spinner">Chargement…</div></div></main>
+</div>
+<!-- Login modal -->
+<div class="fiche-modal-bg" id="login-modal-bg" onclick="if(event.target===this)closeLoginModal()">
+  <div style="background:#fff;border-radius:16px;padding:36px;max-width:380px;width:90%;margin:120px auto;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:ficheSlideUp .3s ease">
+    <div style="text-align:center;margin-bottom:24px"><div style="font-family:var(--font-display);font-size:22px;font-weight:700">Connexion</div><div style="font-size:13px;color:var(--text-muted);margin-top:4px">Connectez-vous pour personnaliser votre dashboard</div></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <input id="login-email" type="email" placeholder="Email" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
+      <input id="login-pass" type="password" placeholder="Mot de passe" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
+      <div id="login-error" style="color:#DC2626;font-size:12px;min-height:16px"></div>
+      <button onclick="doLogin()" style="padding:10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:14px;transition:opacity .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Se connecter</button>
+      <button onclick="doRegister()" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text-body);font-weight:500;cursor:pointer;font-size:13px;transition:all .2s">Créer un compte</button>
+    </div>
+    <button onclick="closeLoginModal()" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">&times;</button>
+  </div>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* ══════════ FIREBASE CONFIG ══════════ */
@@ -162,12 +207,124 @@ const AI_SYS=`Tu es l'assistant IA de TourMaG.com pour les agents de voyages. R�
 /* ══════════ STATE ══════════ */
 let activeTab='dashboard',navTabs=[...DEFAULT_TABS],modules=[],displaySettings={};
 let aiMessages=[{role:'bot',text:"Bonjour ! Je suis Léa, l'assistante IA TourMaG. Posez-moi vos questions tourisme pro."}],aiLoading=false;
+/* User & personalization */
+let currentUser=null,userPrefs=null,thematiqueCatalog=[],thematiqueArticles={};
+const DEFAULT_PREFS={hiddenModules:[],moduleOrder:[],thematiques:[],customized:false};
+
+/* ══════════ AUTH ══════════ */
+const auth=firebase.auth();
+function initAuth(){
+  auth.onAuthStateChanged(user=>{
+    currentUser=user;
+    if(user){
+      /* Load user prefs */
+      db.collection('users').doc(user.uid).onSnapshot(s=>{
+        if(s.exists){userPrefs={...DEFAULT_PREFS,...s.data()}}else{userPrefs={...DEFAULT_PREFS}}
+        loadThematiqueArticles();
+        renderGrid();
+      });
+      /* Load user role */
+      db.collection('users').doc(user.uid).get().then(s=>{
+        const role=(s.exists&&s.data().role)||'subscriber';
+        document.body.dataset.userRole=role;
+      });
+    }else{
+      userPrefs=null;
+      /* Try loading from localStorage as anonymous fallback */
+      try{
+        const saved=localStorage.getItem('tmg-prefs');
+        if(saved)userPrefs=JSON.parse(saved);
+      }catch(e){}
+    }
+    updateAuthUI();
+    renderGrid();
+  });
+}
+function updateAuthUI(){
+  const btn=document.getElementById('auth-btn');
+  if(!btn)return;
+  if(currentUser){
+    btn.innerHTML=`<span style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${(currentUser.email||'?')[0].toUpperCase()}</span>`;
+    btn.title=currentUser.email||'';
+    btn.onclick=showAuthMenu;
+  }else{
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+    btn.title='Se connecter';
+    btn.onclick=showLoginModal;
+  }
+}
+function showAuthMenu(){
+  if(confirm('Se déconnecter ?')){auth.signOut();userPrefs=null;renderGrid()}
+}
+function showLoginModal(){
+  const bg=document.getElementById('login-modal-bg');
+  if(bg)bg.classList.add('show');
+}
+function closeLoginModal(){
+  const bg=document.getElementById('login-modal-bg');
+  if(bg)bg.classList.remove('show');
+}
+async function doLogin(){
+  const email=document.getElementById('login-email')?.value;
+  const pass=document.getElementById('login-pass')?.value;
+  const err=document.getElementById('login-error');
+  if(!email||!pass){if(err)err.textContent='Remplissez tous les champs';return}
+  try{
+    await auth.signInWithEmailAndPassword(email,pass);
+    closeLoginModal();
+  }catch(e){
+    if(err)err.textContent=e.code==='auth/user-not-found'?'Compte inconnu':e.code==='auth/wrong-password'?'Mot de passe incorrect':'Erreur : '+e.message;
+  }
+}
+async function doRegister(){
+  const email=document.getElementById('login-email')?.value;
+  const pass=document.getElementById('login-pass')?.value;
+  const err=document.getElementById('login-error');
+  if(!email||!pass){if(err)err.textContent='Remplissez tous les champs';return}
+  if(pass.length<6){if(err)err.textContent='6 caractères minimum';return}
+  try{
+    const cred=await auth.createUserWithEmailAndPassword(email,pass);
+    /* Create user doc with subscriber role */
+    await db.collection('users').doc(cred.user.uid).set({email,role:'subscriber',createdAt:new Date().toISOString(),...DEFAULT_PREFS});
+    closeLoginModal();
+  }catch(e){
+    if(err)err.textContent=e.code==='auth/email-already-in-use'?'Email déjà utilisé':'Erreur : '+e.message;
+  }
+}
+/* Save user prefs */
+async function saveUserPrefs(){
+  if(!userPrefs)return;
+  userPrefs.customized=true;
+  if(currentUser){
+    try{await db.collection('users').doc(currentUser.uid).set(userPrefs,{merge:true})}catch(e){console.warn('Save prefs err:',e)}
+  }else{
+    try{localStorage.setItem('tmg-prefs',JSON.stringify(userPrefs))}catch(e){}
+  }
+}
+
+/* ══════════ THEMATIQUES ══════════ */
+function loadThematiqueCatalog(){
+  db.collection('config').doc('thematiques').onSnapshot(s=>{
+    if(s.exists){thematiqueCatalog=s.data().catalog||[]}
+    renderGrid();
+  });
+}
+function loadThematiqueArticles(){
+  if(!userPrefs||!userPrefs.thematiques||!userPrefs.thematiques.length)return;
+  userPrefs.thematiques.forEach(tid=>{
+    db.collection('thematiques').doc(tid).get().then(s=>{
+      if(s.exists){thematiqueArticles[tid]=s.data();renderGrid()}
+    });
+  });
+}
 
 /* ══════════ FIREBASE ══════════ */
 function initFS(){
   db.collection('modules').orderBy('order').onSnapshot(s=>{modules=s.docs.map(d=>({id:d.id,...d.data()}));renderGrid()},e=>console.warn('FS modules err:',e));
   db.collection('config').doc('tabs').onSnapshot(s=>{if(s.exists&&s.data().tabs?.length){navTabs=s.data().tabs;buildSidebar()}},e=>console.warn('FS tabs err:',e));
   db.collection('config').doc('displaySettings').onSnapshot(s=>{if(s.exists){displaySettings=s.data()||{};updateBrand();switchTab(activeTab)}},e=>{});
+  initAuth();
+  loadThematiqueCatalog();
 }
 
 /* ══════════ SIDEBAR ══════════ */
@@ -287,12 +444,119 @@ function renderGrid(){
     g.innerHTML=html;
 
   } else {
-    g.innerHTML=mods.map((m,i)=>renderCard(m,i)).join('');
+    /* ═══ DASHBOARD TAB: apply user prefs (hide, reorder, add themas) ═══ */
+    let finalMods=mods;
+    if(activeTab==='dashboard'&&userPrefs){
+      /* Filter hidden modules */
+      if(userPrefs.hiddenModules&&userPrefs.hiddenModules.length){
+        finalMods=finalMods.filter(m=>!userPrefs.hiddenModules.includes(m.id));
+      }
+    }
+    let html=finalMods.map((m,i)=>renderCard(m,i)).join('');
+    /* Add customize panel and thema blocks on dashboard tab */
+    if(activeTab==='dashboard'){
+      /* Show customize button */
+      const custBtn=document.getElementById('customize-btn');
+      if(custBtn)custBtn.style.display='';
+      /* Render customize panel (hidden by default) */
+      html=renderCustomizePanel(mods)+html;
+      /* Render thematique blocks */
+      if(userPrefs&&userPrefs.thematiques&&userPrefs.thematiques.length){
+        html+=userPrefs.thematiques.map(tid=>renderThematiqueBlock(tid)).join('');
+      }
+    }else{
+      const custBtn=document.getElementById('customize-btn');
+      if(custBtn)custBtn.style.display='none';
+    }
+    g.innerHTML=html;
   }
   if(mods.find(m=>m.type==='ai-chat'))renderAI();
   setTimeout(renderDataviz,100);
   setTimeout(initCarousels,200);
   setTimeout(notifyParentResize,300);
+}
+
+/* ══════════ PERSONALIZATION PANEL ══════════ */
+let customizePanelOpen=false;
+function toggleCustomizePanel(){
+  customizePanelOpen=!customizePanelOpen;
+  renderGrid();
+}
+function renderCustomizePanel(allMods){
+  if(!customizePanelOpen)return'';
+  const prefs=userPrefs||DEFAULT_PREFS;
+  const hidden=prefs.hiddenModules||[];
+  const selThemas=prefs.thematiques||[];
+
+  /* Module toggles — only modules on dashboard tab */
+  const dashMods=allMods.filter(m=>m.type!=='ai-chat'&&m.type!=='dest-search');
+  let modsHtml=dashMods.map(m=>{
+    const checked=!hidden.includes(m.id);
+    const title=m.adminLabel||m.title||m.expertName||m.id;
+    return`<label class="cust-toggle"><input type="checkbox" ${checked?'checked':''} onchange="toggleModuleVisibility('${m.id}',this.checked)"><span class="cust-toggle-label">${E(title)}</span><span class="cust-toggle-icon">${m.type==='expert'?'👤':m.type==='rubrique'?'📰':m.type==='kpi'?'📊':m.type==='dataviz'?'📈':m.type==='carousel'?'🎠':'📋'}</span></label>`;
+  }).join('');
+
+  /* Thematique toggles */
+  let themasHtml='';
+  if(thematiqueCatalog.length){
+    themasHtml=`<div class="cust-thema">${thematiqueCatalog.map(t=>{
+      const active=selThemas.includes(t.id);
+      return`<div class="cust-thema-card ${active?'active':''}" onclick="toggleThematique('${t.id}')"><div class="cust-thema-icon">${t.icon||'📰'}</div><div class="cust-thema-name">${E(t.title)}</div></div>`;
+    }).join('')}</div>`;
+  }else{
+    themasHtml='<div style="font-size:12px;color:var(--text-muted);font-style:italic">Les thématiques seront disponibles prochainement.</div>';
+  }
+
+  return`<div class="customize-panel show" style="grid-column:1/-1">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px"><div style="font-family:var(--font-display);font-size:18px;font-weight:700">⚙ Personnaliser mon dashboard</div><div style="flex:1"></div><button onclick="toggleCustomizePanel()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px">Fermer</button></div>
+    <div class="cust-section"><div class="cust-section-title">📰 Mes flux d'actualités</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Choisissez les thématiques qui vous intéressent. Les articles apparaîtront sur votre dashboard.</p>${themasHtml}</div>
+    <div class="cust-section"><div class="cust-section-title">🧩 Blocs visibles</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Décochez les blocs que vous ne souhaitez pas voir.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${modsHtml}</div></div>
+    ${!currentUser?'<div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#92400E;margin-top:6px">💡 <strong>Connectez-vous</strong> pour sauvegarder vos préférences et les retrouver sur tous vos appareils.</div>':''}
+  </div>`;
+}
+
+function toggleModuleVisibility(modId,visible){
+  if(!userPrefs)userPrefs={...DEFAULT_PREFS};
+  if(!userPrefs.hiddenModules)userPrefs.hiddenModules=[];
+  if(visible){
+    userPrefs.hiddenModules=userPrefs.hiddenModules.filter(id=>id!==modId);
+  }else{
+    if(!userPrefs.hiddenModules.includes(modId))userPrefs.hiddenModules.push(modId);
+  }
+  saveUserPrefs();
+  renderGrid();
+}
+
+function toggleThematique(themaId){
+  if(!userPrefs)userPrefs={...DEFAULT_PREFS};
+  if(!userPrefs.thematiques)userPrefs.thematiques=[];
+  const idx=userPrefs.thematiques.indexOf(themaId);
+  if(idx>=0){
+    userPrefs.thematiques.splice(idx,1);
+    delete thematiqueArticles[themaId];
+  }else{
+    userPrefs.thematiques.push(themaId);
+    /* Load articles for this thematique */
+    db.collection('thematiques').doc(themaId).get().then(s=>{
+      if(s.exists){thematiqueArticles[themaId]=s.data();renderGrid()}
+    });
+  }
+  saveUserPrefs();
+  renderGrid();
+}
+
+function renderThematiqueBlock(themaId){
+  const data=thematiqueArticles[themaId];
+  if(!data)return`<div class="card w-half" style="grid-column:span 6"><div class="card-body" style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">Chargement ${themaId}…</div></div>`;
+  const articles=data.articles||[];
+  const accent=data.accent||'#0891B2';
+  return`<div class="thema-block" style="grid-column:span 6">
+    <div class="thema-block-header"><span class="thema-block-icon">${data.icon||'📰'}</span><span class="thema-block-title">${E(data.title||themaId)}</span><span class="thema-block-badge" style="background:${accent}15;color:${accent}">${articles.length} articles</span></div>
+    ${articles.length?articles.map(a=>{
+      const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';
+      return`<a class="thema-article" href="${E(a.url)}" target="_blank">${a.image?`<img class="thema-article-img" src="${E(a.image)}" onerror="this.style.display='none'">`:''}<div class="thema-article-info"><div class="thema-article-title">${E(a.title)}</div>${dt?`<div class="thema-article-date">${dt}</div>`:''}</div></a>`;
+    }).join(''):'<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:12px">Aucun article récent</div>'}
+  </div>`;
 }
 
 /* ══════════ DATAVIZ RENDERING ══════════ */
