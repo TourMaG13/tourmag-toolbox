@@ -220,6 +220,8 @@ function initAuth(){
       /* Load user prefs */
       db.collection('users').doc(user.uid).onSnapshot(s=>{
         if(s.exists){userPrefs={...DEFAULT_PREFS,...s.data()}}else{userPrefs={...DEFAULT_PREFS}}
+        /* Clear and reload thematique articles for this user's selections */
+        thematiqueArticles={};
         loadThematiqueArticles();
         renderGrid();
       });
@@ -230,10 +232,15 @@ function initAuth(){
       });
     }else{
       userPrefs=null;
+      customizePanelOpen=false;
+      thematiqueArticles={};
       /* Try loading from localStorage as anonymous fallback */
       try{
         const saved=localStorage.getItem('tmg-prefs');
-        if(saved)userPrefs=JSON.parse(saved);
+        if(saved){
+          userPrefs=JSON.parse(saved);
+          loadThematiqueArticles();
+        }
       }catch(e){}
     }
     updateAuthUI();
@@ -262,7 +269,7 @@ function showAuthMenu(){
       <div style="font-size:13px;font-weight:600;color:var(--text-dark)">${E(currentUser.email||'')}</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Connecté</div>
     </div>
-    <button onclick="auth.signOut();userPrefs=null;document.getElementById('auth-menu').style.display='none';renderGrid()" style="width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;text-align:left;font-size:13px;color:#DC2626;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">Se déconnecter</button>`;
+    <button onclick="customizePanelOpen=false;thematiqueArticles={};auth.signOut();userPrefs=null;document.getElementById('auth-menu').style.display='none';renderGrid()" style="width:100%;padding:10px 16px;border:none;background:none;cursor:pointer;text-align:left;font-size:13px;color:#DC2626;transition:background .15s" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='none'">Se déconnecter</button>`;
   menu.style.display='block';
   /* Close on click outside */
   setTimeout(()=>{
