@@ -972,17 +972,19 @@ function autoResizeIframe(iframe){
 /* ══════════ IFRAME RESIZE (pour l'embed sur site web) ══════════ */
 function notifyParentResize(){
   try{
-    /* Measure actual content height by finding the bottom-most element */
     const main=document.querySelector('.main');
     if(!main)return;
-    /* Temporarily allow overflow to measure true height */
-    const prevO=document.body.style.overflow;
-    document.body.style.overflow='visible';
-    document.documentElement.style.overflow='visible';
-    const h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight);
-    document.body.style.overflow=prevO||'hidden';
-    document.documentElement.style.overflow='hidden';
-    if(window.parent!==window){
+    /* Measure the actual bottom of content inside .main */
+    const children=main.children;
+    let maxBottom=0;
+    for(let i=0;i<children.length;i++){
+      const rect=children[i].getBoundingClientRect();
+      const bottom=rect.bottom+window.scrollY;
+      if(bottom>maxBottom)maxBottom=bottom;
+    }
+    /* Add some padding */
+    const h=Math.ceil(maxBottom+40);
+    if(h>0&&window.parent!==window){
       window.parent.postMessage({type:'tourmag-resize',height:h},'*');
     }
   }catch(e){}
