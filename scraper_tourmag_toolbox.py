@@ -97,6 +97,42 @@ THEMATIC_FEEDS = [
         "html_url": "https://www.tourmag.com/luxurytravelmag/",
         "max_items": 5,
     },
+    {
+        "id": "thema-france",
+        "title": "Partez en France",
+        "icon": "🇫🇷",
+        "accent": "#1D4ED8",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/partez-en-france",
+        "html_url": "https://www.tourmag.com/partez-en-france/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-responsable",
+        "title": "Voyages responsables",
+        "icon": "🌱",
+        "accent": "#15803D",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/voyages-responsables",
+        "html_url": "https://www.tourmag.com/voyages-responsables/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-voyageurs",
+        "title": "Voyageurs Mag",
+        "icon": "🧳",
+        "accent": "#9333EA",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/voyageursmag",
+        "html_url": "https://www.tourmag.com/voyageursmag/",
+        "max_items": 5,
+    },
+    {
+        "id": "thema-tmc",
+        "title": "TMC",
+        "icon": "💼",
+        "accent": "#475569",
+        "rss": "https://tourmag-rss-flux-psi.vercel.app/rss/travel-managermag",
+        "html_url": "https://www.tourmag.com/travel-managermag/",
+        "max_items": 5,
+    },
 ]
 
 HEADERS = {"User-Agent": "TourMaG-Toolbox-Bot/1.0"}
