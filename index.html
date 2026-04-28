@@ -487,8 +487,9 @@ function renderGrid(){
       /* Show customize button only if logged in */
       const custBtn=document.getElementById('customize-btn');
       if(custBtn)custBtn.style.display=currentUser?'':'none';
-      /* Render customize panel (hidden by default) */
-      html=renderCustomizePanel(mods)+html;
+      /* Render customize panel — pass ALL active modules, not just current tab */
+      const allActiveMods=modules.filter(m=>m.active!==false);
+      html=renderCustomizePanel(allActiveMods)+html;
       /* Render thematique blocks */
       if(userPrefs&&userPrefs.thematiques&&userPrefs.thematiques.length){
         html+=userPrefs.thematiques.map(tid=>renderThematiqueBlock(tid)).join('');
@@ -524,17 +525,41 @@ function renderCustomizePanel(allMods){
     'thema-croisieres':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.38 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.94 5.34 2.81 7.76"/><path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"/><path d="M12 1v4"/></svg>',
     'thema-destinations':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
     'thema-tech':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
-    'thema-luxe':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+    'thema-luxe':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    'thema-france':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/></svg>',
+    'thema-responsable':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22c4-3.5 7-7.5 7-11a7 7 0 1 0-14 0c0 3.5 3 7.5 7 11z"/><path d="M12 8v4"/><path d="M10 12h4"/></svg>',
+    'thema-voyageurs':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 12h16"/><circle cx="12" cy="8" r="2"/><path d="M8 16h8"/></svg>',
+    'thema-tmc':'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12.01"/></svg>'
   };
 
-  /* Module toggles — include ALL module types */
+  /* Module toggles — grouped by category */
   const dashMods=allMods;
-  let modsHtml=dashMods.map(m=>{
-    const checked=!hidden.includes(m.id);
-    const title=m.adminLabel||m.title||m.expertName||m.id;
-    const typeLabel=m.type==='ai-chat'?'Assistant IA':m.type==='expert'?'Expert':m.type==='rubrique'?'Rubrique':m.type==='kpi'?'KPI':m.type==='dataviz'?'Dataviz':m.type==='carousel'?'Carrousel':m.type==='htmlEmbed'?'HTML':m.type;
-    return`<label class="cust-toggle"><input type="checkbox" ${checked?'checked':''} onchange="toggleModuleVisibility('${m.id}',this.checked)"><span class="cust-toggle-label">${E(title)}</span><span style="font-size:10px;color:var(--text-muted);padding:2px 6px;background:#F1F5F9;border-radius:4px">${typeLabel}</span></label>`;
-  }).join('');
+  const groups={
+    'Outils & Widgets':[],
+    'Experts':[],
+    'Rubriques & Articles':[],
+    'Destinations':[],
+    'Autres':[]
+  };
+  dashMods.forEach(m=>{
+    if(m.type==='expert'||m.type==='experts')groups['Experts'].push(m);
+    else if(m.type==='rubrique')groups['Rubriques & Articles'].push(m);
+    else if(m.type==='focus'||m.type==='dest-search')groups['Destinations'].push(m);
+    else if(m.type==='ai-chat'||m.type==='standard'||m.type==='kpi'||m.type==='dataviz'||m.type==='carousel'||m.type==='htmlEmbed'||m.type==='video'||m.type==='link-all')groups['Outils & Widgets'].push(m);
+    else groups['Autres'].push(m);
+  });
+  let modsHtml='';
+  for(const[groupName,groupMods] of Object.entries(groups)){
+    if(!groupMods.length)continue;
+    const allChecked=groupMods.every(m=>!hidden.includes(m.id));
+    const noneChecked=groupMods.every(m=>hidden.includes(m.id));
+    modsHtml+=`<div style="margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'grid':'none';this.querySelector('.cust-arrow').textContent=this.nextElementSibling.style.display==='none'?'▸':'▾'"><span class="cust-arrow" style="font-size:10px;color:var(--text-muted)">▾</span><span style="font-size:12px;font-weight:700;color:var(--text-dark)">${groupName}</span><span style="font-size:10px;color:var(--text-muted);background:#F1F5F9;padding:1px 6px;border-radius:4px">${groupMods.length}</span><span style="flex:1"></span><button onclick="event.stopPropagation();toggleGroupVisibility('${groupName}',${noneChecked||!allChecked})" style="font-size:10px;color:var(--accent);background:none;border:none;cursor:pointer;text-decoration:underline">${allChecked?'Tout masquer':'Tout afficher'}</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${groupMods.map(m=>{
+      const checked=!hidden.includes(m.id);
+      const title=m.adminLabel||m.title||m.expertName||m.id;
+      const typeLabel=m.type==='ai-chat'?'Assistant IA':m.type==='expert'||m.type==='experts'?'Expert':m.type==='rubrique'?'Rubrique':m.type==='kpi'?'KPI':m.type==='dataviz'?'Dataviz':m.type==='carousel'?'Carrousel':m.type==='htmlEmbed'?'HTML':m.type==='focus'?'Destination':m.type==='standard'?'Standard':m.type;
+      return`<label class="cust-toggle"><input type="checkbox" ${checked?'checked':''} onchange="toggleModuleVisibility('${m.id}',this.checked)"><span class="cust-toggle-label">${E(title)}</span><span style="font-size:10px;color:var(--text-muted);padding:2px 6px;background:#F1F5F9;border-radius:4px">${typeLabel}</span></label>`;
+    }).join('')}</div></div>`;
+  }
 
   /* Thematique toggles with SVG icons */
   let themasHtml='';
@@ -622,6 +647,31 @@ function toggleModuleVisibility(modId,visible){
   renderGrid();
 }
 
+function toggleGroupVisibility(groupName,show){
+  if(!userPrefs)userPrefs={...DEFAULT_PREFS};
+  if(!userPrefs.hiddenModules)userPrefs.hiddenModules=[];
+  const allMods=modules.filter(m=>m.active!==false);
+  const groupMap={
+    'Outils & Widgets':m=>['ai-chat','standard','kpi','dataviz','carousel','htmlEmbed','video','link-all'].includes(m.type),
+    'Experts':m=>m.type==='expert'||m.type==='experts',
+    'Rubriques & Articles':m=>m.type==='rubrique',
+    'Destinations':m=>m.type==='focus'||m.type==='dest-search',
+    'Autres':m=>!['ai-chat','standard','kpi','dataviz','carousel','htmlEmbed','video','link-all','expert','experts','rubrique','focus','dest-search'].includes(m.type)
+  };
+  const filter=groupMap[groupName];
+  if(!filter)return;
+  const groupMods=allMods.filter(filter);
+  groupMods.forEach(m=>{
+    if(show){
+      userPrefs.hiddenModules=userPrefs.hiddenModules.filter(id=>id!==m.id);
+    }else{
+      if(!userPrefs.hiddenModules.includes(m.id))userPrefs.hiddenModules.push(m.id);
+    }
+  });
+  saveUserPrefs();
+  renderGrid();
+}
+
 function toggleThematique(themaId){
   if(!userPrefs)userPrefs={...DEFAULT_PREFS};
   if(!userPrefs.thematiques)userPrefs.thematiques=[];
@@ -654,7 +704,11 @@ function renderThematiqueBlock(themaId){
     'thema-croisieres':'https://www.tourmag.com/cruisemag/',
     'thema-destinations':'https://www.tourmag.com/dmcmag/',
     'thema-tech':'https://www.tourmag.com/latraveltech/',
-    'thema-luxe':'https://www.tourmag.com/luxurytravelmag/'
+    'thema-luxe':'https://www.tourmag.com/luxurytravelmag/',
+    'thema-france':'https://www.tourmag.com/partez-en-france/',
+    'thema-responsable':'https://www.tourmag.com/voyages-responsables/',
+    'thema-voyageurs':'https://www.tourmag.com/voyageursmag/',
+    'thema-tmc':'https://www.tourmag.com/travel-managermag/'
   };
   const sourceUrl=sourceUrls[themaId]||'https://www.tourmag.com';
 
