@@ -441,7 +441,7 @@ function renderGrid(){
     const ob=(b.orders&&b.orders[activeTab]!=null)?b.orders[activeTab]:(b.order||0);
     return oa-ob;
   });
-  if(!mods.length){g.innerHTML='<div class="empty-state">Aucun module dans cette catégorie.</div>';return}
+  if(!mods.length&&activeTab!=='dashboard'){g.innerHTML='<div class="empty-state">Aucun module dans cette catégorie.</div>';return}
   if(activeTab==='destinations'){
     const fiches=mods.filter(m=>m.type==='focus');
     const others=mods.filter(m=>m.type!=='focus'&&m.type!=='dest-search');
@@ -562,7 +562,7 @@ function renderCustomizePanel(allMods){
 
   let modsHtml='';
   for(const[tabId,group] of Object.entries(tabGroups)){
-    if(!group.mods.length)continue;
+    if(!group.mods.length||tabId==='dashboard')continue;
     const uniqueMods=group.mods;
     const allChecked=uniqueMods.every(m=>!hidden.includes(m.id));
     const tabIcon=IC[group.icon]||'';
