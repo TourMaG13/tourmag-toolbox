@@ -283,9 +283,11 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 def search_pexels_photos(queries, count=5):
-    """Search Pexels for destination photos (free API, 200 req/month)."""
+    """Search Pexels (with key) or Wikimedia Commons (free, no key) for destination photos."""
     photos = []
     for q in queries[:count]:
+        found = False
+        # 1. Try Pexels if key available
         if PEXELS_API_KEY:
             try:
                 r = requests.get("https://api.pexels.com/v1/search",
@@ -296,12 +298,40 @@ def search_pexels_photos(queries, count=5):
                     data = r.json()
                     if data.get("photos"):
                         photos.append(data["photos"][0]["src"]["large"])
-                        continue
+                        found = True
             except Exception as e:
-                print(f"  Pexels err: {e}", end=" ")
-        # Fallback: Unsplash search URL
-        safe_q = requests.utils.quote(q)
-        photos.append(f"https://source.unsplash.com/800x500/?{safe_q}")
+                print(f"Pexels err: {e}", end=" ")
+        
+        # 2. Fallback: Wikimedia Commons (free, no key, relevant photos)
+        if not found:
+            try:
+                r = requests.get("https://commons.wikimedia.org/w/api.php",
+                    params={
+                        "action": "query", "format": "json",
+                        "generator": "search", "gsrsearch": f"{q} tourism travel",
+                        "gsrlimit": 3, "gsrnamespace": 6,
+                        "prop": "imageinfo", "iiprop": "url|size",
+                        "iiurlwidth": 800
+                    },
+                    headers=HEADERS, timeout=10)
+                if r.status_code == 200:
+                    pages = r.json().get("query", {}).get("pages", {})
+                    for pid, page in pages.items():
+                        info = page.get("imageinfo", [{}])[0]
+                        thumb = info.get("thumburl", "")
+                        if thumb and info.get("width", 0) > 200:
+                            photos.append(thumb)
+                            found = True
+                            break
+            except Exception as e:
+                print(f"Wiki err: {e}", end=" ")
+        
+        # 3. Last resort: get og:image from a travel page
+        if not found:
+            safe_q = requests.utils.quote(q)
+            photos.append(f"https://source.unsplash.com/800x500/?{safe_q}")
+        
+        time.sleep(0.5)
     return photos
 
 def extract_structured_data(fiche_data, country):
@@ -452,7 +482,47 @@ IMPORTANT: photoSearchTerms = noms de LIEUX PRECIS (ex: "Petra Jordanie", "Table
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "source": "ia-haiku-2pass"
     })
-    print(f"  → {mod_id}"); return mod_id
+    print(f"  → {mod_id}")
+    
+    # ═══ Fetch initial news for this destination ═══
+    print(f"  Fetching news for {country}...", end=" ", flush=True)
+    try:
+        _fetch_news_for_dest(db, db.collection("modules").document(mod_id), country)
+    except Exception as e:
+        print(f"news err: {e}")
+    
+    return mod_id
+
+def _fetch_news_for_dest(db, doc_ref, country):
+    """Fetch latest 5 news articles for a single destination using Claude web search."""
+    if not ANTHROPIC_API_KEY:
+        print("no API key"); return
+    prompt = f"""Trouve les 5 dernières actualités tourisme/voyage concernant "{country}" publiées ces dernières semaines.
+Pour chaque, donne titre, description courte (1 phrase), URL source, date approximative.
+Réponds UNIQUEMENT en JSON valide :
+{{"articles": [{{"title": "...", "description": "...", "url": "https://...", "date": "2025-06-01"}}]}}"""
+    try:
+        r = requests.post("https://api.anthropic.com/v1/messages",
+            headers={"x-api-key": ANTHROPIC_API_KEY, "content-type": "application/json", "anthropic-version": "2023-06-01"},
+            json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1500,
+                  "tools": [{"type": "web_search_20250305", "name": "web_search"}],
+                  "messages": [{"role": "user", "content": prompt}]},
+            timeout=120)
+        if r.status_code == 200:
+            texts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
+            raw = "".join(texts)
+            json_match = re.search(r'\{[\s\S]*\}', raw)
+            if json_match:
+                news_data = json.loads(json_match.group())
+                articles = news_data.get("articles", [])[:5]
+                doc_ref.update({"destNews": articles, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+                print(f"{len(articles)} articles")
+            else:
+                print("no JSON in response")
+        else:
+            print(f"HTTP {r.status_code}")
+    except Exception as e:
+        print(f"err: {e}")
 
 def refresh_dest_news(db):
     """Refresh latest news for each destination fiche using Claude with web search."""
@@ -460,67 +530,19 @@ def refresh_dest_news(db):
     if not ANTHROPIC_API_KEY:
         print("  WARN: no API key, skipping news refresh")
         return
-    
     docs = db.collection("modules").where("type", "==", "focus").stream()
     count = 0
     for doc in docs:
         data = doc.to_dict()
         country = data.get("title", "")
         if not country: continue
-        
         print(f"  [{country}]...", end=" ", flush=True)
-        
-        # Use Claude to find recent tourism news about this country
-        prompt = f"""Trouve les 5 dernières actualités tourisme concernant "{country}" publiées récemment.
-Pour chaque actualité, donne le titre, une courte description (1 phrase), l'URL source si possible, et la date approximative.
-
-Réponds UNIQUEMENT en JSON valide :
-{{
-  "articles": [
-    {{"title": "Titre de l'actualité", "description": "Description courte", "url": "https://...", "date": "2025-01-15"}},
-    ...
-  ]
-}}"""
-        
         try:
-            # Call Claude with web search tool
-            r = requests.post("https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": ANTHROPIC_API_KEY,
-                    "content-type": "application/json",
-                    "anthropic-version": "2023-06-01"
-                },
-                json={
-                    "model": "claude-haiku-4-5-20251001",
-                    "max_tokens": 1500,
-                    "tools": [{"type": "web_search_20250305", "name": "web_search"}],
-                    "messages": [{"role": "user", "content": prompt}]
-                },
-                timeout=120
-            )
-            if r.status_code == 200:
-                texts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
-                raw = "".join(texts)
-                # Extract JSON from response
-                json_match = re.search(r'\{[\s\S]*\}', raw)
-                if json_match:
-                    news_data = json.loads(json_match.group())
-                    articles = news_data.get("articles", [])[:5]
-                    doc.reference.update({
-                        "destNews": articles,
-                        "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()
-                    })
-                    print(f"{len(articles)} articles")
-                    count += 1
-                else:
-                    print("no JSON found")
-            else:
-                print(f"HTTP {r.status_code}")
+            _fetch_news_for_dest(db, doc.reference, country)
+            count += 1
         except Exception as e:
             print(f"ERR: {e}")
-        
-        time.sleep(2)  # Rate limit
-    
+        time.sleep(2)
     print(f"  → {count} fiches mises à jour.")
 
 # ══════════ HTML FALLBACK SCRAPER (BeautifulSoup) ══════════
