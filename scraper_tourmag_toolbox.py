@@ -280,128 +280,151 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
         except Exception as e: print(f"  ERR ({attempt+1}): {e}"); time.sleep(10) if attempt<retries-1 else None
     return None
 
-def search_unsplash_photos(query, count=5):
-    """Search Unsplash for photos using their API (no key needed for source URLs)."""
-    # Use specific search terms to get relevant destination photos
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
+
+def search_pexels_photos(queries, count=5):
+    """Search Pexels for destination photos (free API, 200 req/month)."""
     photos = []
-    for q in query[:count]:
-        # Build a deterministic Unsplash URL with specific search
+    for q in queries[:count]:
+        if PEXELS_API_KEY:
+            try:
+                r = requests.get("https://api.pexels.com/v1/search",
+                    headers={"Authorization": PEXELS_API_KEY},
+                    params={"query": q, "per_page": 1, "orientation": "landscape"},
+                    timeout=10)
+                if r.status_code == 200:
+                    data = r.json()
+                    if data.get("photos"):
+                        photos.append(data["photos"][0]["src"]["large"])
+                        continue
+            except Exception as e:
+                print(f"  Pexels err: {e}", end=" ")
+        # Fallback: Unsplash search URL
         safe_q = requests.utils.quote(q)
-        # Use unsplash source which redirects to a real photo
-        url = f"https://source.unsplash.com/800x500/?{safe_q}"
-        try:
-            r = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
-            final_url = r.url if r.status_code == 200 else url
-            photos.append(final_url)
-        except:
-            photos.append(url)
-        time.sleep(0.5)
+        photos.append(f"https://source.unsplash.com/800x500/?{safe_q}")
     return photos
+
+def extract_structured_data(fiche_data, country):
+    """Second Claude call to extract structured data from sections text."""
+    sections = fiche_data.get("sections", [])
+    if not sections:
+        return fiche_data
+    
+    sections_text = "\n\n".join([f"### {s['title']}\n{s['content']}" for s in sections])
+    
+    extract_prompt = f"""Voici le texte brut d'une fiche destination "{country}". Extrais les données structurées en JSON UNIQUEMENT :
+
+{sections_text}
+
+JSON :
+{{
+  "mae": {{
+    "level": "Vigilance normale ou Vigilance renforcée ou Déconseillé",
+    "safeZones": ["zone sûre 1", "zone sûre 2"],
+    "cautionZones": ["zone vigilance"],
+    "dangerZones": ["zone danger"],
+    "recommendations": ["conseil 1", "conseil 2", "conseil 3"]
+  }},
+  "formalities": {{
+    "passport": "détail passeport",
+    "visa": "détail visa",
+    "vaccines": "détail vaccins",
+    "currency": "détail devise"
+  }},
+  "tourism": {{
+    "visitorsPerYear": "X millions",
+    "growthPercent": 8,
+    "frenchVisitors": "X visiteurs français",
+    "ranking": "classement",
+    "highSeason": ["juillet", "août"],
+    "lowSeason": ["janvier", "février"],
+    "trends": ["tendance 1", "tendance 2"]
+  }},
+  "pointsOfInterest": [
+    {{"name": "Lieu", "description": "1 phrase", "type": "nature", "mustSee": true}}
+  ],
+  "tourOperators": [
+    {{"name": "TO", "specialty": "spécialité", "products": "produits"}}
+  ],
+  "salesTips": {{
+    "targetClients": ["cible 1"],
+    "avgBudget": "budget",
+    "idealDuration": "durée",
+    "bestBookingPeriod": "période réservation",
+    "bestArguments": ["argument 1"],
+    "crossSell": ["extension 1"]
+  }}
+}}
+JSON valide uniquement, pas de backticks."""
+
+    text = call_haiku(extract_prompt, max_tokens=2000)
+    if not text:
+        print("extraction: no response", end=" ")
+        return fiche_data
+    
+    try:
+        extracted = json.loads(re.sub(r'```json|```', '', text).strip())
+        for key in ["mae", "formalities", "tourism", "pointsOfInterest", "tourOperators", "salesTips"]:
+            if key in extracted and extracted[key]:
+                fiche_data[key] = extracted[key]
+        print("extraction: OK", end=" ")
+    except Exception as e:
+        print(f"extraction err: {e}", end=" ")
+    
+    return fiche_data
 
 def generate_dest_fiche(db, country, photo=""):
     print(f"═══ FICHE: {country} ═══")
-    prompt = f"""Fiche destination professionnelle complète pour "{country}" destinée aux agents de voyages français.
-Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de backticks).
-
+    
+    # ═══ PASS 1: Simple prompt for Haiku ═══
+    prompt = f"""Fiche destination pro "{country}" pour agents de voyages français.
+Réponds UNIQUEMENT en JSON valide (pas de backticks) :
 {{
-  "summary": "Résumé accrocheur 2-3 phrases pour agents de voyages",
-  
+  "summary": "Résumé accrocheur 2-3 phrases",
   "essentials": {{
-    "visa": "UNE phrase synthétique max. Ex: Pas de visa requis pour séjour <90j, passeport valide 6 mois",
-    "sante": "UNE phrase synthétique max. Ex: Fièvre jaune obligatoire, paludisme zone nord",
-    "devise": "UNE phrase synthétique max. Ex: Rand sud-africain (1€≈20 ZAR), CB acceptées en ville"
+    "visa": "UNE phrase synthétique sur visa/passeport",
+    "sante": "UNE phrase synthétique sur santé/vaccins",
+    "devise": "UNE phrase synthétique sur devise/budget"
   }},
-
-  "photoSearchTerms": [
-    "lieu emblématique précis du pays pour photo",
-    "deuxième lieu touristique précis",
-    "paysage naturel célèbre du pays",
-    "scène culturelle ou marché typique",
-    "plat ou gastronomie locale typique"
-  ],
-  
-  "mae": {{
-    "level": "Vigilance renforcée|Vigilance normale|Déconseillé sauf raison impérative",
-    "safeZones": ["Zone sûre 1", "Zone sûre 2"],
-    "cautionZones": ["Zone vigilance 1"],
-    "dangerZones": ["Zone à éviter 1"],
-    "recommendations": ["Conseil 1", "Conseil 2", "Conseil 3"]
-  }},
-  
-  "formalities": {{
-    "passport": "Détail passeport",
-    "visa": "Détail visa complet",
-    "vaccines": "Détail vaccins",
-    "currency": "Devise, taux, moyens de paiement"
-  }},
-  
-  "tourism": {{
-    "visitorsPerYear": "4.5 millions",
-    "visitorsNumber": 4500000,
-    "growthPercent": 8,
-    "frenchVisitors": "200 000",
-    "ranking": "2ème destination africaine",
-    "highSeason": ["avril", "mai", "juin", "juillet", "août", "septembre"],
-    "lowSeason": ["novembre", "décembre", "janvier", "février", "mars"],
-    "avgTemp": {{ "high": "25-30°C", "low": "10-15°C" }},
-    "trends": ["Tendance 1", "Tendance 2", "Tendance 3"]
-  }},
-  
-  "pointsOfInterest": [
-    {{ "name": "Nom du lieu", "description": "1-2 phrases", "type": "nature|culture|aventure|plage|ville", "mustSee": true }},
-    {{ "name": "Lieu 2", "description": "...", "type": "...", "mustSee": false }}
-  ],
-  
-  "tourOperators": [
-    {{ "name": "Nom du TO", "specialty": "Spécialité", "products": "Type de produits" }},
-    {{ "name": "TO 2", "specialty": "...", "products": "..." }}
-  ],
-  
-  "salesTips": {{
-    "targetClients": ["Couple aventure", "Famille", "Luxe"],
-    "avgBudget": "1500-3000€/pers pour 10j",
-    "bestArguments": ["Argument commercial 1", "Argument 2", "Argument 3"],
-    "idealDuration": "10-14 jours",
-    "bestBookingPeriod": "6-8 mois à l'avance",
-    "crossSell": ["Extension possible 1", "Extension 2"]
-  }},
-
+  "photoSearchTerms": ["lieu célèbre 1 du pays", "lieu célèbre 2", "paysage naturel célèbre", "scène culturelle typique", "gastronomie locale"],
   "sections": [
-    {{"title": "Conseils MAE", "group": "pratique", "content": "- Point 1\\n- Point 2"}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation\\n- Tendances"}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1\\n- Lieu 2"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1\\n- TO 2"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Argument 1\\n- Cible"}}
+    {{"title": "Conseils MAE", "group": "pratique", "content": "- point 1\\n- point 2\\n- point 3"}},
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail\\n- Vaccins : détail\\n- Devise : détail"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : X millions/an\\n- Croissance : X%\\n- Haute saison : mois\\n- Basse saison : mois\\n- Tendances : ..."}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description courte\\n- Lieu 2 : description\\n- Lieu 3 : description"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité\\n- TO 2 : spécialité"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Cible : ...\\n- Budget moyen : ...\\n- Durée idéale : ...\\n- Arguments : ...\\n- Extensions : ..."}}
   ]
 }}
+IMPORTANT: photoSearchTerms = noms de LIEUX PRECIS (ex: "Petra Jordanie", "Table Mountain Cape Town")."""
 
-IMPORTANT: 
-- photoSearchTerms doit contenir des noms de LIEUX PRECIS et CELEBRES du pays (pas des termes génériques)
-- Les chiffres dans tourism doivent être réalistes
-- essentials = UNE phrase synthétique par champ, pas un paragraphe
-- Tous les contenus en français"""
-
-    text = call_haiku(prompt, max_tokens=3000)
+    print("  Pass 1...", end=" ", flush=True)
+    text = call_haiku(prompt, max_tokens=2500)
     if not text: return None
-    try: fiche_data = json.loads(re.sub(r'```json|```','',text).strip())
-    except Exception as e: print(f"  JSON err: {e}"); return None
+    try:
+        fiche_data = json.loads(re.sub(r'```json|```', '', text).strip())
+    except Exception as e:
+        print(f"JSON err: {e}")
+        return None
+    print(f"OK ({len(fiche_data.get('sections',[]))} sections)")
     
-    slug = re.sub(r'[^a-z0-9]','-',country.lower())
+    # ═══ PASS 2: Extract structured data ═══
+    print("  Pass 2...", end=" ", flush=True)
+    fiche_data = extract_structured_data(fiche_data, country)
+    print()
+    
+    slug = re.sub(r'[^a-z0-9]', '-', country.lower())
     mod_id = f"dest-{slug}-{int(time.time())}"
     
-    # ═══ AUTO PHOTOS — use specific search terms from AI ═══
+    # ═══ PHOTOS ═══
     search_terms = fiche_data.get("photoSearchTerms", [
-        f"{country} landmark famous",
-        f"{country} landscape nature",
-        f"{country} culture tradition",
-        f"{country} beach coast",
-        f"{country} food cuisine"
+        f"{country} landmark", f"{country} landscape", f"{country} culture",
+        f"{country} nature", f"{country} food"
     ])
-    print(f"  Photos: {search_terms[:3]}...", end=" ", flush=True)
-    photos = search_unsplash_photos(search_terms, count=5)
-    hero_photo = photos[0] if photos else f"https://source.unsplash.com/1200x600/?{requests.utils.quote(country)},travel,landmark"
-    if photo: hero_photo = photo  # Override if provided
+    print(f"  Photos: {search_terms[:2]}...", end=" ", flush=True)
+    photos = search_pexels_photos(search_terms, count=5)
+    hero_photo = photos[0] if photos else ""
+    if photo: hero_photo = photo
     print(f"{len(photos)} photos")
     
     essentials = fiche_data.get("essentials", {})
@@ -425,13 +448,12 @@ IMPORTANT:
         "salesTips": fiche_data.get("salesTips", {}),
         "photoSearchTerms": search_terms,
         "photos": photos,
-        "destNews": [],  # Will be filled by refresh_dest_news
+        "destNews": [],
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": "ia-haiku"
+        "source": "ia-haiku-2pass"
     })
     print(f"  → {mod_id}"); return mod_id
 
-# ══════════ REFRESH DESTINATION NEWS (2x/week) ══════════
 def refresh_dest_news(db):
     """Refresh latest news for each destination fiche using Claude with web search."""
     print("═══ REFRESH DESTINATION NEWS ═══")
