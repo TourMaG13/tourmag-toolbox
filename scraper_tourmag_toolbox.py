@@ -280,58 +280,226 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
         except Exception as e: print(f"  ERR ({attempt+1}): {e}"); time.sleep(10) if attempt<retries-1 else None
     return None
 
+def search_unsplash_photos(query, count=5):
+    """Search Unsplash for photos using their API (no key needed for source URLs)."""
+    # Use specific search terms to get relevant destination photos
+    photos = []
+    for q in query[:count]:
+        # Build a deterministic Unsplash URL with specific search
+        safe_q = requests.utils.quote(q)
+        # Use unsplash source which redirects to a real photo
+        url = f"https://source.unsplash.com/800x500/?{safe_q}"
+        try:
+            r = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
+            final_url = r.url if r.status_code == 200 else url
+            photos.append(final_url)
+        except:
+            photos.append(url)
+        time.sleep(0.5)
+    return photos
+
 def generate_dest_fiche(db, country, photo=""):
     print(f"═══ FICHE: {country} ═══")
-    prompt = f"""Fiche destination pro "{country}" pour agents de voyages français. JSON valide uniquement :
+    prompt = f"""Fiche destination professionnelle complète pour "{country}" destinée aux agents de voyages français.
+Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de backticks).
+
 {{
-  "summary": "Résumé 2-3 phrases",
-  "photoKeywords": ["5 mots-clés photo pour unsplash"],
+  "summary": "Résumé accrocheur 2-3 phrases pour agents de voyages",
+  
   "essentials": {{
-    "visa": "Résumé court visa/passeport",
-    "sante": "Résumé court santé/vaccins",
-    "devise": "Résumé court devise/budget"
+    "visa": "UNE phrase synthétique max. Ex: Pas de visa requis pour séjour <90j, passeport valide 6 mois",
+    "sante": "UNE phrase synthétique max. Ex: Fièvre jaune obligatoire, paludisme zone nord",
+    "devise": "UNE phrase synthétique max. Ex: Rand sud-africain (1€≈20 ZAR), CB acceptées en ville"
   }},
+
+  "photoSearchTerms": [
+    "lieu emblématique précis du pays pour photo",
+    "deuxième lieu touristique précis",
+    "paysage naturel célèbre du pays",
+    "scène culturelle ou marché typique",
+    "plat ou gastronomie locale typique"
+  ],
+  
+  "mae": {{
+    "level": "Vigilance renforcée|Vigilance normale|Déconseillé sauf raison impérative",
+    "safeZones": ["Zone sûre 1", "Zone sûre 2"],
+    "cautionZones": ["Zone vigilance 1"],
+    "dangerZones": ["Zone à éviter 1"],
+    "recommendations": ["Conseil 1", "Conseil 2", "Conseil 3"]
+  }},
+  
+  "formalities": {{
+    "passport": "Détail passeport",
+    "visa": "Détail visa complet",
+    "vaccines": "Détail vaccins",
+    "currency": "Devise, taux, moyens de paiement"
+  }},
+  
+  "tourism": {{
+    "visitorsPerYear": "4.5 millions",
+    "visitorsNumber": 4500000,
+    "growthPercent": 8,
+    "frenchVisitors": "200 000",
+    "ranking": "2ème destination africaine",
+    "highSeason": ["avril", "mai", "juin", "juillet", "août", "septembre"],
+    "lowSeason": ["novembre", "décembre", "janvier", "février", "mars"],
+    "avgTemp": {{ "high": "25-30°C", "low": "10-15°C" }},
+    "trends": ["Tendance 1", "Tendance 2", "Tendance 3"]
+  }},
+  
+  "pointsOfInterest": [
+    {{ "name": "Nom du lieu", "description": "1-2 phrases", "type": "nature|culture|aventure|plage|ville", "mustSee": true }},
+    {{ "name": "Lieu 2", "description": "...", "type": "...", "mustSee": false }}
+  ],
+  
+  "tourOperators": [
+    {{ "name": "Nom du TO", "specialty": "Spécialité", "products": "Type de produits" }},
+    {{ "name": "TO 2", "specialty": "...", "products": "..." }}
+  ],
+  
+  "salesTips": {{
+    "targetClients": ["Couple aventure", "Famille", "Luxe"],
+    "avgBudget": "1500-3000€/pers pour 10j",
+    "bestArguments": ["Argument commercial 1", "Argument 2", "Argument 3"],
+    "idealDuration": "10-14 jours",
+    "bestBookingPeriod": "6-8 mois à l'avance",
+    "crossSell": ["Extension possible 1", "Extension 2"]
+  }},
+
   "sections": [
-    {{"title": "Conseils MAE", "group": "pratique", "content": "- Point 1\\n- Point 2\\n- Point 3"}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail\\n- Vaccins : détail"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation\\n- Tendances\\n- Saisonnalité"}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description\\n- Lieu 2 : description"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité\\n- TO 2 : spécialité"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Argument 1\\n- Cible\\n- Panier moyen"}}
+    {{"title": "Conseils MAE", "group": "pratique", "content": "- Point 1\\n- Point 2"}},
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation\\n- Tendances"}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1\\n- Lieu 2"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1\\n- TO 2"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Argument 1\\n- Cible"}}
   ]
 }}
-IMPORTANT: Utilise des retours à la ligne (\\n) et tirets (-) pour séparer chaque point."""
-    text = call_haiku(prompt)
+
+IMPORTANT: 
+- photoSearchTerms doit contenir des noms de LIEUX PRECIS et CELEBRES du pays (pas des termes génériques)
+- Les chiffres dans tourism doivent être réalistes
+- essentials = UNE phrase synthétique par champ, pas un paragraphe
+- Tous les contenus en français"""
+
+    text = call_haiku(prompt, max_tokens=3000)
     if not text: return None
     try: fiche_data = json.loads(re.sub(r'```json|```','',text).strip())
-    except: print("  JSON err"); return None
-    slug = re.sub(r'[^a-z0-9]','-',country.lower()); mod_id = f"dest-{slug}-{int(time.time())}"
-    if not photo: photo = f"https://source.unsplash.com/800x400/?{requests.utils.quote(country)},travel"
-    # Build photo URLs from keywords
-    keywords = fiche_data.get("photoKeywords", [f"{country} travel", f"{country} landmark", f"{country} nature", f"{country} culture", f"{country} food"])
-    photos = []
-    for kw in keywords[:5]:
-        img = get_og_image(f"https://source.unsplash.com/600x400/?{requests.utils.quote(kw)}")
-        photos.append(img if img else f"https://source.unsplash.com/600x400/?{requests.utils.quote(kw)}")
-        time.sleep(0.3)
+    except Exception as e: print(f"  JSON err: {e}"); return None
+    
+    slug = re.sub(r'[^a-z0-9]','-',country.lower())
+    mod_id = f"dest-{slug}-{int(time.time())}"
+    
+    # ═══ AUTO PHOTOS — use specific search terms from AI ═══
+    search_terms = fiche_data.get("photoSearchTerms", [
+        f"{country} landmark famous",
+        f"{country} landscape nature",
+        f"{country} culture tradition",
+        f"{country} beach coast",
+        f"{country} food cuisine"
+    ])
+    print(f"  Photos: {search_terms[:3]}...", end=" ", flush=True)
+    photos = search_unsplash_photos(search_terms, count=5)
+    hero_photo = photos[0] if photos else f"https://source.unsplash.com/1200x600/?{requests.utils.quote(country)},travel,landmark"
+    if photo: hero_photo = photo  # Override if provided
+    print(f"{len(photos)} photos")
+    
     essentials = fiche_data.get("essentials", {})
+    
     db.collection("modules").document(mod_id).set({
         "title": country,
-        "subtitle": "Focus destination de la semaine",
+        "subtitle": "Fiche pratique destination",
         "description": fiche_data.get("summary", ""),
-        "url": "", "photo": photo,
+        "url": "", "photo": hero_photo,
         "category": "destinations",
-        "categories": ["destinations", "dashboard"],
+        "categories": ["destinations"],
         "size": "large", "accent": "#D97706",
         "type": "focus", "active": True, "order": 0, "badge": "",
         "ficheData": fiche_data,
         "essentials": essentials,
-        "photoKeywords": keywords,
+        "mae": fiche_data.get("mae", {}),
+        "formalities": fiche_data.get("formalities", {}),
+        "tourism": fiche_data.get("tourism", {}),
+        "pointsOfInterest": fiche_data.get("pointsOfInterest", []),
+        "tourOperators": fiche_data.get("tourOperators", []),
+        "salesTips": fiche_data.get("salesTips", {}),
+        "photoSearchTerms": search_terms,
         "photos": photos,
+        "destNews": [],  # Will be filled by refresh_dest_news
         "generatedAt": datetime.now(timezone.utc).isoformat(),
         "source": "ia-haiku"
     })
-    print(f"  → {mod_id} ({len(photos)} photos)"); return mod_id
+    print(f"  → {mod_id}"); return mod_id
+
+# ══════════ REFRESH DESTINATION NEWS (2x/week) ══════════
+def refresh_dest_news(db):
+    """Refresh latest news for each destination fiche using Claude with web search."""
+    print("═══ REFRESH DESTINATION NEWS ═══")
+    if not ANTHROPIC_API_KEY:
+        print("  WARN: no API key, skipping news refresh")
+        return
+    
+    docs = db.collection("modules").where("type", "==", "focus").stream()
+    count = 0
+    for doc in docs:
+        data = doc.to_dict()
+        country = data.get("title", "")
+        if not country: continue
+        
+        print(f"  [{country}]...", end=" ", flush=True)
+        
+        # Use Claude to find recent tourism news about this country
+        prompt = f"""Trouve les 5 dernières actualités tourisme concernant "{country}" publiées récemment.
+Pour chaque actualité, donne le titre, une courte description (1 phrase), l'URL source si possible, et la date approximative.
+
+Réponds UNIQUEMENT en JSON valide :
+{{
+  "articles": [
+    {{"title": "Titre de l'actualité", "description": "Description courte", "url": "https://...", "date": "2025-01-15"}},
+    ...
+  ]
+}}"""
+        
+        try:
+            # Call Claude with web search tool
+            r = requests.post("https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "content-type": "application/json",
+                    "anthropic-version": "2023-06-01"
+                },
+                json={
+                    "model": "claude-haiku-4-5-20251001",
+                    "max_tokens": 1500,
+                    "tools": [{"type": "web_search_20250305", "name": "web_search"}],
+                    "messages": [{"role": "user", "content": prompt}]
+                },
+                timeout=120
+            )
+            if r.status_code == 200:
+                texts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
+                raw = "".join(texts)
+                # Extract JSON from response
+                json_match = re.search(r'\{[\s\S]*\}', raw)
+                if json_match:
+                    news_data = json.loads(json_match.group())
+                    articles = news_data.get("articles", [])[:5]
+                    doc.reference.update({
+                        "destNews": articles,
+                        "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()
+                    })
+                    print(f"{len(articles)} articles")
+                    count += 1
+                else:
+                    print("no JSON found")
+            else:
+                print(f"HTTP {r.status_code}")
+        except Exception as e:
+            print(f"ERR: {e}")
+        
+        time.sleep(2)  # Rate limit
+    
+    print(f"  → {count} fiches mises à jour.")
 
 # ══════════ HTML FALLBACK SCRAPER (BeautifulSoup) ══════════
 def scrape_html_articles(url, max_items=5):
@@ -459,7 +627,7 @@ def scrape_thematiques(db):
     print(f"  → {len(THEMATIC_FEEDS)} thématiques, catalogue mis à jour.")
 
 def main():
-    print(f"╔══ TourMaG Scraper v5 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
+    print(f"╔══ TourMaG Scraper v6 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
     db = init_firebase()
     scrape_experts(db)
     scrape_rss_rubriques(db)
@@ -467,6 +635,9 @@ def main():
     scrape_thematiques(db)
     dest = os.environ.get("GENERATE_DEST_FICHE","")
     if dest: generate_dest_fiche(db, dest, os.environ.get("DEST_FICHE_PHOTO",""))
+    # Refresh destination news (set REFRESH_NEWS=1 to trigger, run 2x/week)
+    if os.environ.get("REFRESH_NEWS", ""):
+        refresh_dest_news(db)
     print("╚══ Done ══╝")
 
 if __name__ == "__main__": main()
