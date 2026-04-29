@@ -1171,19 +1171,24 @@ function openFiche(id){
 
   /* ═══ FRONTEND EXTRACTION: parse sections text into structured data when backend fields missing ═══ */
   function findSection(keyword){return sections.find(s=>(s.title||'').toLowerCase().includes(keyword))}
-  function splitLines(content){return(content||'').split(/\n|(?:\s-\s)/).map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>3)}
+  function splitLines(content){
+    if(!content)return[];
+    /* Split on newlines first, then on " - " patterns (but not inside words like "haut-de-gamme") */
+    let lines=content.split(/\n/).flatMap(l=>l.split(/(?<=\.) - |(?<=\w) - (?=[A-ZÀ-Ü])/));
+    return lines.map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>5);
+  }
   
-  /* Auto-extract MAE from sections text */
+  /* Auto-extract MAE */
   if(!(fd.mae||m.mae||{}).level){
     const maeS=findSection('mae')||findSection('conseil');
     if(maeS){
       const lines=splitLines(maeS.content);
-      const levelLine=lines.find(l=>/vigilance|déconseillé|sûr/i.test(l));
+      const levelLine=lines.find(l=>/vigilance|déconseillé|sûr|faible/i.test(l));
       const level=levelLine?(levelLine.includes('renforcée')?'Vigilance renforcée':levelLine.includes('Déconseillé')?'Déconseillé sauf raison impérative':'Vigilance normale'):'Vigilance normale';
-      const safeZones=lines.filter(l=>/sûr|safe|recommand/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
-      const dangerZones=lines.filter(l=>/éviter|danger|risqu/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
-      const recs=lines.filter(l=>!/vigilance|zone|sûr|éviter/i.test(l)).slice(0,4);
-      fd.mae={level,safeZones:safeZones.slice(0,3),cautionZones:[],dangerZones:dangerZones.slice(0,3),recommendations:recs};
+      const safeZones=lines.filter(l=>/sûr|safe|faible|aucune zone dangereuse/i.test(l)).map(l=>l.replace(/.*:\s*/,''));
+      const dangerZones=lines.filter(l=>/éviter|danger|risqu|quartiers/i.test(l)).map(l=>l.replace(/.*:\s*/,''));
+      const recs=lines.filter(l=>!/vigilance|zone|sûr|éviter|danger|faible/i.test(l)).slice(0,5);
+      fd.mae={level,safeZones:safeZones.slice(0,4),cautionZones:[],dangerZones:dangerZones.slice(0,4),recommendations:recs};
     }
   }
   /* Auto-extract formalities */
@@ -1192,56 +1197,99 @@ function openFiche(id){
     if(formS){
       const lines=splitLines(formS.content);
       const find=(kw)=>lines.find(l=>l.toLowerCase().includes(kw))||'';
-      fd.formalities={passport:find('passeport'),visa:find('visa'),vaccines:find('vaccin'),currency:find('devis')||find('monnaie')||find('chf')||find('eur')};
+      fd.formalities={passport:find('passeport')||find('cni'),visa:find('visa'),vaccines:find('vaccin'),currency:find('devis')||find('monnaie')||find('vignette')||find('douane')};
     }
   }
   /* Auto-extract tourism data */
   if(!(fd.tourism||m.tourism||{}).visitorsPerYear){
-    const tourS=findSection('dynamisme')||findSection('touristique');
+    const tourS=findSection('dynamisme')||findSection('touristique')||findSection('fréquentation');
     if(tourS){
-      const lines=splitLines(tourS.content);
-      const numMatch=(tourS.content||'').match(/(\d[\d.,]*)\s*millions?\s*(de\s+)?visit/i);
-      const growthMatch=(tourS.content||'').match(/(\d+)[-%]\s*/);
-      const highMatch=(tourS.content||'').match(/haute\s+saison\s*:?\s*([^,\n]+)/i);
+      const txt=tourS.content||'';
+      const lines=splitLines(txt);
+      /* Multiple regex patterns for visitor numbers */
+      const numMatch=txt.match(/(?:environ\s+)?(\d[\d.,]*)\s*millions?\s*(?:de\s+)?(?:visit|tourist)/i)
+        ||txt.match(/fréquentation[^:]*:\s*(?:environ\s+)?(\d[\d.,]*)\s*millions?/i)
+        ||txt.match(/(\d[\d.,]*)\s*millions?\s*(?:de\s+)?visit/i);
+      /* Growth patterns */
+      const growthMatch=txt.match(/(?:croissance|hausse|progression)[^:]*:\s*(\d+)/i)
+        ||txt.match(/(\d+)\s*%\s*(?:de\s+)?(?:croissance|hausse|annuel)/i)
+        ||txt.match(/(\d+)-(\d+)%/i);
+      /* Season patterns — look for month names after season keywords */
       const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-      const highMonths=highMatch?months.filter(mo=>highMatch[1].toLowerCase().includes(mo.substring(0,3))):[];
-      const trends=lines.filter(l=>/tendance|croissance|hausse|augment/i.test(l)).slice(0,3).map(l=>l.substring(0,60));
-      fd.tourism={visitorsPerYear:numMatch?numMatch[1]+' millions':'',growthPercent:growthMatch?parseInt(growthMatch[1]):0,frenchVisitors:'',ranking:'',highSeason:highMonths,lowSeason:[],trends};
+      const monthAbbr=['jan','fév','mar','avr','mai','jui','juil','aoû','sep','oct','nov','déc'];
+      let highMonths=[];
+      const seasonMatch=txt.match(/(?:haute\s+saison|pic|été|hiver)[^.]*?(?:[:,]\s*)([\wé\s,-àù]+?)(?:\.|$|\n)/i);
+      if(seasonMatch){
+        months.forEach((mo,i)=>{
+          if(seasonMatch[1].toLowerCase().includes(mo.substring(0,3)))highMonths.push(mo);
+        });
+      }
+      /* If no explicit season match, try to find month clusters */
+      if(!highMonths.length){
+        months.forEach(mo=>{
+          const moRx=new RegExp(mo.substring(0,4)+'[a-zéû]*','i');
+          if(moRx.test(txt)&&/pic|haute|idéal|recommand/i.test(txt.substring(Math.max(0,txt.search(moRx)-60),txt.search(moRx)+60)))highMonths.push(mo);
+        });
+      }
+      /* French visitors */
+      const frMatch=txt.match(/(\d[\d\s.,]*)\s*(?:visiteurs?\s+)?français/i)||txt.match(/clientèle\s+française[^.]*?(\d[\d\s.,]*)/i);
+      /* Ranking */
+      const rankMatch=txt.match(/(\d+[eè]me?\s+destination[^,.]*)/i)||txt.match(/(premier|deuxième|troisième)[^,.]*destination[^,.]+/i);
+      /* Trends */
+      const trends=lines.filter(l=>/tendance|hausse|croissance|augment|tourisme\s+\w+\s+en/i.test(l)).slice(0,4);
+      
+      fd.tourism={
+        visitorsPerYear:numMatch?(numMatch[1].replace(',','.')+' millions'):'',
+        growthPercent:growthMatch?parseInt(growthMatch[1]):0,
+        frenchVisitors:frMatch?frMatch[1].trim():'',
+        ranking:rankMatch?rankMatch[1]:'',
+        highSeason:highMonths,
+        lowSeason:[],
+        trends:trends.length?trends:lines.filter(l=>/dynamique|croissance|reprise/i.test(l)).slice(0,3)
+      };
     }
   }
-  /* Auto-extract POI */
+  /* Auto-extract POI — NO TRUNCATION */
   if(!(fd.pointsOfInterest||m.pointsOfInterest||[]).length){
-    const poiS=findSection('intérêt')||findSection('interet');
+    const poiS=findSection('intérêt')||findSection('interet')||findSection('incontournable');
     if(poiS){
       const lines=splitLines(poiS.content);
-      fd.pointsOfInterest=lines.slice(0,8).map(l=>{
+      fd.pointsOfInterest=lines.slice(0,10).map(l=>{
         const parts=l.split(/\s*:\s*/);
-        const name=parts[0]||l;const desc=parts.slice(1).join(': ')||'';
-        const type=/plage|mer|côte/i.test(l)?'plage':/montagne|alp|trek|rando/i.test(l)?'nature':/musée|temple|palace|château|patrimoine/i.test(l)?'culture':/aventure|sport|safari/i.test(l)?'aventure':'ville';
-        return{name:name.substring(0,50),description:desc.substring(0,100),type,mustSee:lines.indexOf(l)<3};
+        const name=(parts[0]||l).replace(/\([^)]*\)/,'').trim();
+        const desc=parts.length>1?parts.slice(1).join(': '):'';
+        const type=/plage|mer|côte|balnéaire|lac\b/i.test(l)?'plage':/montagne|alp|trek|rando|glacier|sommet/i.test(l)?'nature':/musée|temple|palace|château|patrimoine|cathédrale|église|historique|médiéval/i.test(l)?'culture':/aventure|sport|safari|ski|parachut/i.test(l)?'aventure':'ville';
+        return{name,description:desc,type,mustSee:lines.indexOf(l)<3};
       });
     }
   }
-  /* Auto-extract TO */
+  /* Auto-extract TO — NO TRUNCATION */
   if(!(fd.tourOperators||m.tourOperators||[]).length){
     const toS=findSection('opérateur')||findSection('operateur');
     if(toS){
       const lines=splitLines(toS.content);
-      fd.tourOperators=lines.slice(0,8).map(l=>{
+      fd.tourOperators=lines.slice(0,10).map(l=>{
         const parts=l.split(/\s*:\s*/);
-        return{name:parts[0]||l,specialty:parts[1]||'',products:parts.slice(2).join(', ')};
+        return{name:(parts[0]||l).trim(),specialty:parts.length>1?parts.slice(1).join(', '):'',products:''};
       });
     }
   }
-  /* Auto-extract sales tips */
+  /* Auto-extract sales tips — NO TRUNCATION */
   if(!(fd.salesTips||m.salesTips||{}).targetClients){
     const saleS=findSection('vente')||findSection('commercial');
     if(saleS){
       const lines=splitLines(saleS.content);
-      const find=(kw)=>{const l=lines.find(x=>x.toLowerCase().includes(kw));return l?l.replace(/.*:\s*/,''):''};
+      const find=(kw)=>{const l=lines.find(x=>x.toLowerCase().includes(kw));return l?l.replace(/^[^:]*:\s*/,''):''};
       const targets=find('cible')||find('clientèle');
-      const args=lines.filter(l=>/argument|atout|point fort/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
-      fd.salesTips={targetClients:targets?targets.split(/[,;]/).map(s=>s.trim()).filter(Boolean):[],avgBudget:find('budget')||find('panier'),idealDuration:find('durée'),bestBookingPeriod:find('réserv')||find('anticip'),bestArguments:args.length?args:lines.slice(0,3).map(l=>l.substring(0,80)),crossSell:[]};
+      const args=lines.filter(l=>/argument|atout|point fort|stratég|principal/i.test(l)).map(l=>l.replace(/^[^:]*:\s*/,''));
+      fd.salesTips={
+        targetClients:targets?targets.split(/[,;]/).map(s=>s.trim()).filter(s=>s.length>2):[],
+        avgBudget:find('budget')||find('panier'),
+        idealDuration:find('durée'),
+        bestBookingPeriod:find('réserv')||find('anticip')||find('période'),
+        bestArguments:args.length?args:lines.filter(l=>/argument|conseil|astuce|upsell/i.test(l)).slice(0,4).map(l=>l.replace(/^[^:]*:\s*/,'')),
+        crossSell:(find('extension')||find('upsell')||find('cross')).split(/[,;]/).map(s=>s.trim()).filter(s=>s.length>2)
+      };
     }
   }
   /* Propagate extracted data back to m for the rendering */
