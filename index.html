@@ -1169,6 +1169,89 @@ function openFiche(id){
   const fd=m.ficheData;
   const sections=fd.sections||[];
 
+  /* ═══ FRONTEND EXTRACTION: parse sections text into structured data when backend fields missing ═══ */
+  function findSection(keyword){return sections.find(s=>(s.title||'').toLowerCase().includes(keyword))}
+  function splitLines(content){return(content||'').split(/\n|(?:\s-\s)/).map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>3)}
+  
+  /* Auto-extract MAE from sections text */
+  if(!(fd.mae||m.mae||{}).level){
+    const maeS=findSection('mae')||findSection('conseil');
+    if(maeS){
+      const lines=splitLines(maeS.content);
+      const levelLine=lines.find(l=>/vigilance|déconseillé|sûr/i.test(l));
+      const level=levelLine?(levelLine.includes('renforcée')?'Vigilance renforcée':levelLine.includes('Déconseillé')?'Déconseillé sauf raison impérative':'Vigilance normale'):'Vigilance normale';
+      const safeZones=lines.filter(l=>/sûr|safe|recommand/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
+      const dangerZones=lines.filter(l=>/éviter|danger|risqu/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
+      const recs=lines.filter(l=>!/vigilance|zone|sûr|éviter/i.test(l)).slice(0,4);
+      fd.mae={level,safeZones:safeZones.slice(0,3),cautionZones:[],dangerZones:dangerZones.slice(0,3),recommendations:recs};
+    }
+  }
+  /* Auto-extract formalities */
+  if(!(fd.formalities||m.formalities||{}).passport){
+    const formS=findSection('formalit');
+    if(formS){
+      const lines=splitLines(formS.content);
+      const find=(kw)=>lines.find(l=>l.toLowerCase().includes(kw))||'';
+      fd.formalities={passport:find('passeport'),visa:find('visa'),vaccines:find('vaccin'),currency:find('devis')||find('monnaie')||find('chf')||find('eur')};
+    }
+  }
+  /* Auto-extract tourism data */
+  if(!(fd.tourism||m.tourism||{}).visitorsPerYear){
+    const tourS=findSection('dynamisme')||findSection('touristique');
+    if(tourS){
+      const lines=splitLines(tourS.content);
+      const numMatch=(tourS.content||'').match(/(\d[\d.,]*)\s*millions?\s*(de\s+)?visit/i);
+      const growthMatch=(tourS.content||'').match(/(\d+)[-%]\s*/);
+      const highMatch=(tourS.content||'').match(/haute\s+saison\s*:?\s*([^,\n]+)/i);
+      const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      const highMonths=highMatch?months.filter(mo=>highMatch[1].toLowerCase().includes(mo.substring(0,3))):[];
+      const trends=lines.filter(l=>/tendance|croissance|hausse|augment/i.test(l)).slice(0,3).map(l=>l.substring(0,60));
+      fd.tourism={visitorsPerYear:numMatch?numMatch[1]+' millions':'',growthPercent:growthMatch?parseInt(growthMatch[1]):0,frenchVisitors:'',ranking:'',highSeason:highMonths,lowSeason:[],trends};
+    }
+  }
+  /* Auto-extract POI */
+  if(!(fd.pointsOfInterest||m.pointsOfInterest||[]).length){
+    const poiS=findSection('intérêt')||findSection('interet');
+    if(poiS){
+      const lines=splitLines(poiS.content);
+      fd.pointsOfInterest=lines.slice(0,8).map(l=>{
+        const parts=l.split(/\s*:\s*/);
+        const name=parts[0]||l;const desc=parts.slice(1).join(': ')||'';
+        const type=/plage|mer|côte/i.test(l)?'plage':/montagne|alp|trek|rando/i.test(l)?'nature':/musée|temple|palace|château|patrimoine/i.test(l)?'culture':/aventure|sport|safari/i.test(l)?'aventure':'ville';
+        return{name:name.substring(0,50),description:desc.substring(0,100),type,mustSee:lines.indexOf(l)<3};
+      });
+    }
+  }
+  /* Auto-extract TO */
+  if(!(fd.tourOperators||m.tourOperators||[]).length){
+    const toS=findSection('opérateur')||findSection('operateur');
+    if(toS){
+      const lines=splitLines(toS.content);
+      fd.tourOperators=lines.slice(0,8).map(l=>{
+        const parts=l.split(/\s*:\s*/);
+        return{name:parts[0]||l,specialty:parts[1]||'',products:parts.slice(2).join(', ')};
+      });
+    }
+  }
+  /* Auto-extract sales tips */
+  if(!(fd.salesTips||m.salesTips||{}).targetClients){
+    const saleS=findSection('vente')||findSection('commercial');
+    if(saleS){
+      const lines=splitLines(saleS.content);
+      const find=(kw)=>{const l=lines.find(x=>x.toLowerCase().includes(kw));return l?l.replace(/.*:\s*/,''):''};
+      const targets=find('cible')||find('clientèle');
+      const args=lines.filter(l=>/argument|atout|point fort/i.test(l)).map(l=>l.replace(/.*:\s*/,'').substring(0,80));
+      fd.salesTips={targetClients:targets?targets.split(/[,;]/).map(s=>s.trim()).filter(Boolean):[],avgBudget:find('budget')||find('panier'),idealDuration:find('durée'),bestBookingPeriod:find('réserv')||find('anticip'),bestArguments:args.length?args:lines.slice(0,3).map(l=>l.substring(0,80)),crossSell:[]};
+    }
+  }
+  /* Propagate extracted data back to m for the rendering */
+  if(fd.mae)m.mae=fd.mae;
+  if(fd.formalities)m.formalities=fd.formalities;
+  if(fd.tourism)m.tourism=fd.tourism;
+  if(fd.pointsOfInterest)m.pointsOfInterest=fd.pointsOfInterest;
+  if(fd.tourOperators)m.tourOperators=fd.tourOperators;
+  if(fd.salesTips)m.salesTips=fd.salesTips;
+
   /* ═══ ESSENTIALS — full text ═══ */
   const ess=fd.essentials||m.essentials||{};
   const essCards=[
