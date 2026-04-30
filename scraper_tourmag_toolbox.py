@@ -334,132 +334,77 @@ def search_pexels_photos(queries, count=5):
         time.sleep(0.5)
     return photos
 
-def extract_structured_data(fiche_data, country):
-    """Second Claude call to extract structured data from sections text."""
-    sections = fiche_data.get("sections", [])
-    if not sections:
-        return fiche_data
-    
-    sections_text = "\n\n".join([f"### {s['title']}\n{s['content']}" for s in sections])
-    
-    extract_prompt = f"""Voici le texte brut d'une fiche destination "{country}". Extrais les données structurées en JSON UNIQUEMENT :
-
-{sections_text}
-
-JSON :
-{{
-  "mae": {{
-    "level": "Vigilance normale ou Vigilance renforcée ou Déconseillé",
-    "safeZones": ["zone sûre 1", "zone sûre 2"],
-    "cautionZones": ["zone vigilance"],
-    "dangerZones": ["zone danger"],
-    "recommendations": ["conseil 1", "conseil 2", "conseil 3"]
-  }},
-  "formalities": {{
-    "passport": "détail passeport",
-    "visa": "détail visa",
-    "vaccines": "détail vaccins",
-    "currency": "détail devise"
-  }},
-  "tourism": {{
-    "visitorsPerYear": "X millions",
-    "growthPercent": 8,
-    "frenchVisitors": "X visiteurs français",
-    "ranking": "classement",
-    "highSeason": ["juillet", "août"],
-    "lowSeason": ["janvier", "février"],
-    "trends": ["tendance 1", "tendance 2"]
-  }},
-  "pointsOfInterest": [
-    {{"name": "Lieu", "description": "1 phrase", "type": "nature", "mustSee": true}}
-  ],
-  "tourOperators": [
-    {{"name": "TO", "specialty": "spécialité", "products": "produits"}}
-  ],
-  "salesTips": {{
-    "targetClients": ["cible 1"],
-    "avgBudget": "budget",
-    "idealDuration": "durée",
-    "bestBookingPeriod": "période réservation",
-    "bestArguments": ["argument 1"],
-    "crossSell": ["extension 1"]
-  }}
-}}
-JSON valide uniquement, pas de backticks."""
-
-    text = call_haiku(extract_prompt, max_tokens=2000)
-    if not text:
-        print("extraction: no response", end=" ")
-        return fiche_data
-    
-    try:
-        extracted = json.loads(re.sub(r'```json|```', '', text).strip())
-        for key in ["mae", "formalities", "tourism", "pointsOfInterest", "tourOperators", "salesTips"]:
-            if key in extracted and extracted[key]:
-                fiche_data[key] = extracted[key]
-        print("extraction: OK", end=" ")
-    except Exception as e:
-        print(f"extraction err: {e}", end=" ")
-    
-    return fiche_data
 
 def generate_dest_fiche(db, country, photo=""):
+    """Generate a destination fiche with a single simple prompt + photos + news."""
     print(f"═══ FICHE: {country} ═══")
     
-    # ═══ PASS 1: Simple prompt for Haiku ═══
     prompt = f"""Fiche destination pro "{country}" pour agents de voyages français.
-Réponds UNIQUEMENT en JSON valide (pas de backticks) :
+Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
 {{
-  "summary": "Résumé accrocheur 2-3 phrases",
+  "summary": "Résumé accrocheur 2-3 phrases pour agents de voyages",
   "essentials": {{
     "visa": "UNE phrase synthétique sur visa/passeport",
     "sante": "UNE phrase synthétique sur santé/vaccins",
-    "devise": "UNE phrase synthétique sur devise/budget"
+    "devise": "UNE phrase synthétique sur devise/budget avec taux de change"
   }},
-  "photoSearchTerms": ["lieu célèbre 1 du pays", "lieu célèbre 2", "paysage naturel célèbre", "scène culturelle typique", "gastronomie locale"],
+  "photoSearchTerms": ["lieu célèbre précis 1", "lieu célèbre précis 2", "paysage naturel célèbre", "scène culturelle typique", "gastronomie locale"],
   "sections": [
-    {{"title": "Conseils MAE", "group": "pratique", "content": "- point 1\\n- point 2\\n- point 3"}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail\\n- Visa : détail\\n- Vaccins : détail\\n- Devise : détail"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : X millions/an\\n- Croissance : X%\\n- Haute saison : mois\\n- Basse saison : mois\\n- Tendances : ..."}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description courte\\n- Lieu 2 : description\\n- Lieu 3 : description"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité\\n- TO 2 : spécialité"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Cible : ...\\n- Budget moyen : ...\\n- Durée idéale : ...\\n- Arguments : ...\\n- Extensions : ..."}}
+    {{"title": "Conseils MAE", "group": "pratique", "content": "- Niveau de vigilance : ...\\n- Zones sûres : ...\\n- Zones à éviter : ...\\n- Recommandations : ..."}},
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail complet\\n- Visa : détail complet\\n- Vaccins : détail complet\\n- Devise et paiements : détail complet"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : X millions de visiteurs par an\\n- Croissance : X% par an\\n- Visiteurs français : X par an\\n- Haute saison : mois à mois\\n- Basse saison : mois à mois\\n- Tendances : phrase complète sur les tendances"}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description complète en une phrase\\n- Lieu 2 : description complète\\n- Lieu 3 : description complète\\n- Lieu 4 : description complète\\n- Lieu 5 : description complète"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité et types de produits proposés\\n- TO 2 : spécialité et produits\\n- TO 3 : spécialité et produits"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : description des profils\\n- Budget moyen : X€ par personne pour Xj\\n- Durée idéale : X jours\\n- Meilleure période de réservation : ...\\n- Arguments clés : phrase complète\\n- Extensions possibles : destinations combinables"}}
   ]
 }}
-IMPORTANT: photoSearchTerms = noms de LIEUX PRECIS (ex: "Petra Jordanie", "Table Mountain Cape Town")."""
+IMPORTANT: 
+- photoSearchTerms = noms de LIEUX PRECIS et CELEBRES du pays (ex: "Porte de Brandebourg Berlin", "Château Neuschwanstein Bavière")
+- Chaque point dans content doit être une PHRASE COMPLETE, pas un fragment
+- Dans Dynamisme touristique, donner des CHIFFRES REELS
+- Séparer chaque point par \\n suivi d'un tiret"""
 
-    print("  Pass 1...", end=" ", flush=True)
+    print("  Generating...", end=" ", flush=True)
     text = call_haiku(prompt, max_tokens=2500)
-    if not text: return None
+    if not text:
+        print("FAIL")
+        return None
     try:
         fiche_data = json.loads(re.sub(r'```json|```', '', text).strip())
     except Exception as e:
         print(f"JSON err: {e}")
-        return None
-    print(f"OK ({len(fiche_data.get('sections',[]))} sections)")
-    
-    # ═══ PASS 2: Extract structured data ═══
-    print("  Pass 2...", end=" ", flush=True)
-    fiche_data = extract_structured_data(fiche_data, country)
-    print()
+        # Try to salvage partial JSON
+        try:
+            partial = text.strip()
+            if not partial.endswith('}'):
+                partial = partial[:partial.rfind('}')+1]
+            fiche_data = json.loads(re.sub(r'```json|```', '', partial).strip())
+        except:
+            return None
+    print(f"OK ({len(fiche_data.get('sections', []))} sections)")
     
     slug = re.sub(r'[^a-z0-9]', '-', country.lower())
     mod_id = f"dest-{slug}-{int(time.time())}"
     
-    # ═══ PHOTOS ═══
+    # ═══ PHOTOS — Pexels or Wikimedia Commons ═══
     search_terms = fiche_data.get("photoSearchTerms", [
-        f"{country} landmark", f"{country} landscape", f"{country} culture",
-        f"{country} nature", f"{country} food"
+        f"{country} famous landmark",
+        f"{country} landscape nature",
+        f"{country} culture tradition",
+        f"{country} city architecture",
+        f"{country} local food cuisine"
     ])
     print(f"  Photos: {search_terms[:2]}...", end=" ", flush=True)
     photos = search_pexels_photos(search_terms, count=5)
     hero_photo = photos[0] if photos else ""
-    if photo: hero_photo = photo
+    if photo:
+        hero_photo = photo
     print(f"{len(photos)} photos")
     
     essentials = fiche_data.get("essentials", {})
     
-    db.collection("modules").document(mod_id).set({
+    # ═══ SAVE TO FIRESTORE ═══
+    doc_data = {
         "title": country,
         "subtitle": "Fiche pratique destination",
         "description": fiche_data.get("summary", ""),
@@ -470,22 +415,17 @@ IMPORTANT: photoSearchTerms = noms de LIEUX PRECIS (ex: "Petra Jordanie", "Table
         "type": "focus", "active": True, "order": 0, "badge": "",
         "ficheData": fiche_data,
         "essentials": essentials,
-        "mae": fiche_data.get("mae", {}),
-        "formalities": fiche_data.get("formalities", {}),
-        "tourism": fiche_data.get("tourism", {}),
-        "pointsOfInterest": fiche_data.get("pointsOfInterest", []),
-        "tourOperators": fiche_data.get("tourOperators", []),
-        "salesTips": fiche_data.get("salesTips", {}),
         "photoSearchTerms": search_terms,
         "photos": photos,
         "destNews": [],
         "generatedAt": datetime.now(timezone.utc).isoformat(),
-        "source": "ia-haiku-2pass"
-    })
+        "source": "ia-haiku"
+    }
+    db.collection("modules").document(mod_id).set(doc_data)
     print(f"  → {mod_id}")
     
-    # ═══ Fetch initial news for this destination ═══
-    print(f"  Fetching news for {country}...", end=" ", flush=True)
+    # ═══ FETCH NEWS ═══
+    print(f"  News...", end=" ", flush=True)
     try:
         _fetch_news_for_dest(db, db.collection("modules").document(mod_id), country)
     except Exception as e:
@@ -494,13 +434,12 @@ IMPORTANT: photoSearchTerms = noms de LIEUX PRECIS (ex: "Petra Jordanie", "Table
     return mod_id
 
 def _fetch_news_for_dest(db, doc_ref, country):
-    """Fetch latest 5 news articles for a single destination using Claude web search."""
+    """Fetch 5 latest tourism news for a destination via Claude web search."""
     if not ANTHROPIC_API_KEY:
-        print("no API key"); return
-    prompt = f"""Trouve les 5 dernières actualités tourisme/voyage concernant "{country}" publiées ces dernières semaines.
-Pour chaque, donne titre, description courte (1 phrase), URL source, date approximative.
-Réponds UNIQUEMENT en JSON valide :
-{{"articles": [{{"title": "...", "description": "...", "url": "https://...", "date": "2025-06-01"}}]}}"""
+        print("no key"); return
+    prompt = f"""Trouve les 5 dernières actualités tourisme/voyage concernant "{country}" publiées récemment.
+Réponds UNIQUEMENT en JSON valide (pas de backticks) :
+{{"articles": [{{"title": "Titre complet", "description": "Description en une phrase complète", "url": "https://...", "date": "2025-06-01"}}]}}"""
     try:
         r = requests.post("https://api.anthropic.com/v1/messages",
             headers={"x-api-key": ANTHROPIC_API_KEY, "content-type": "application/json", "anthropic-version": "2023-06-01"},
@@ -513,28 +452,24 @@ Réponds UNIQUEMENT en JSON valide :
             raw = "".join(texts)
             json_match = re.search(r'\{[\s\S]*\}', raw)
             if json_match:
-                news_data = json.loads(json_match.group())
-                articles = news_data.get("articles", [])[:5]
-                doc_ref.update({"destNews": articles, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
-                print(f"{len(articles)} articles")
+                news = json.loads(json_match.group()).get("articles", [])[:5]
+                doc_ref.update({"destNews": news, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+                print(f"{len(news)} articles")
             else:
-                print("no JSON in response")
+                print("no JSON")
         else:
             print(f"HTTP {r.status_code}")
     except Exception as e:
         print(f"err: {e}")
 
 def refresh_dest_news(db):
-    """Refresh latest news for each destination fiche using Claude with web search."""
+    """Refresh news for all destination fiches."""
     print("═══ REFRESH DESTINATION NEWS ═══")
     if not ANTHROPIC_API_KEY:
-        print("  WARN: no API key, skipping news refresh")
-        return
-    docs = db.collection("modules").where("type", "==", "focus").stream()
+        print("  No API key"); return
     count = 0
-    for doc in docs:
-        data = doc.to_dict()
-        country = data.get("title", "")
+    for doc in db.collection("modules").where("type", "==", "focus").stream():
+        country = doc.to_dict().get("title", "")
         if not country: continue
         print(f"  [{country}]...", end=" ", flush=True)
         try:
@@ -543,9 +478,8 @@ def refresh_dest_news(db):
         except Exception as e:
             print(f"ERR: {e}")
         time.sleep(2)
-    print(f"  → {count} fiches mises à jour.")
+    print(f"  → {count} fiches.")
 
-# ══════════ HTML FALLBACK SCRAPER (BeautifulSoup) ══════════
 def scrape_html_articles(url, max_items=5):
     """Scrape articles from a TourMaG rubrique page as fallback when RSS fails."""
     try:
