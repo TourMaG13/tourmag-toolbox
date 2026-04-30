@@ -14,6 +14,7 @@ from firebase_admin import credentials, firestore
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 FIREBASE_CREDS = os.environ.get("FIREBASE_CREDENTIALS", "")
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 EXPERT_FEEDS = [
     {"tag":"duthion","name":"Brice Duthion","role":"Expert Tourisme Urbain","rss":"https://www.tourmag.com/xml/syndication.rss?t=duthion","page":"https://www.tourmag.com/tags/duthion/"},
@@ -360,9 +361,12 @@ Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
 }}
 IMPORTANT: 
 - photoSearchTerms = noms de LIEUX PRECIS et CELEBRES du pays (ex: "Porte de Brandebourg Berlin", "Château Neuschwanstein Bavière")
-- Chaque point dans content doit être une PHRASE COMPLETE, pas un fragment
-- Dans Dynamisme touristique, donner des CHIFFRES REELS
-- Séparer chaque point par \\n suivi d'un tiret"""
+- Chaque point DOIT être une PHRASE COMPLETE commençant par une MAJUSCULE
+- MAUVAIS EXEMPLE: "passeport valide 6 mois, visa non requis"
+- BON EXEMPLE: "Le passeport doit être valide au moins 6 mois après la date de retour."
+- Dans Dynamisme touristique, donner des CHIFFRES REELS et PRECIS
+- Séparer chaque point par \\n suivi d'un tiret
+- essentials: UNE phrase COMPLETE par champ"""
 
     print("  Generating...", end=" ", flush=True)
     text = call_haiku(prompt, max_tokens=2500)
