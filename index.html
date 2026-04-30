@@ -90,7 +90,7 @@
 @keyframes ficheSlideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
 .fiche-hero{position:relative;height:420px;background-size:cover;background-position:center;display:flex;align-items:flex-end}
 .fiche-hero-overlay{position:absolute;inset:0;background:linear-gradient(170deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.8) 100%)}
-.fiche-hero-content{position:relative;z-index:1;padding:40px 48px 44px;color:#fff;width:100%}
+.fiche-hero-content{position:relative;z-index:1;padding:40px 48px 72px;color:#fff;width:100%}
 .fiche-hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:30px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;border:1px solid rgba(255,255,255,.2)}
 .fiche-hero-flag{width:28px;height:20px;border-radius:3px;object-fit:cover;box-shadow:0 1px 4px rgba(0,0,0,.3)}
 .fiche-hero-title{font-family:'Playfair Display',var(--font-display),Georgia,serif;font-size:52px;font-weight:800;letter-spacing:-1.5px;text-shadow:0 3px 12px rgba(0,0,0,.4);line-height:1.1}
@@ -116,10 +116,9 @@
 .fiche-mosaic>div:first-child{grid-row:span 2}
 .fiche-mosaic>div{overflow:hidden;border-radius:4px;position:relative}
 /* Section title style */
-.fiche-section-divider{text-align:center;margin:48px 0 32px;position:relative;padding-top:16px}
-.fiche-section-divider::before{content:'';position:absolute;left:0;right:0;top:8px;height:1px;background:linear-gradient(90deg,transparent,#E2E8F0 20%,#E2E8F0 80%,transparent)}
-.fiche-section-divider-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:#fff;padding:0 20px;position:relative}
-.fiche-section-divider-title{font-family:'Playfair Display',var(--font-display),serif;font-size:28px;font-weight:700;color:var(--text-dark);margin-top:10px;position:relative;background:#fff;display:inline-block;padding:0 16px}
+.fiche-section-divider{text-align:center;margin:48px 0 32px}
+.fiche-section-divider-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)}
+.fiche-section-divider-title{font-family:'Playfair Display',var(--font-display),serif;font-size:28px;font-weight:700;color:var(--text-dark);margin-top:10px}
 .fiche-section-divider-line{width:40px;height:3px;background:var(--accent);border-radius:2px;margin:10px auto 0}
 /* Sections grid */
 .fiche-sections{display:grid;grid-template-columns:1fr 1fr;gap:24px}
@@ -1299,22 +1298,13 @@ function openFiche(id){
     /* ── POINTS D'INTERET → numbered cards ── */
     else if(tl.includes('intérêt')||tl.includes('interet')){
       const poiColors=['#DC2626','#D97706','#059669','#7C3AED','#0891B2','#2563EB','#EC4899','#F59E0B'];
-      const typeIcons={
-        nature:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M8 5.2C8 3.4 9.8 2 12 2s4 1.4 4 3.2c0 2-4 4.8-4 4.8s-4-2.8-4-4.8z"/></svg>',
-        culture:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>',
-        aventure:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5 0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 .83-.67 1.5-1.5 1.5z"/><path d="M3 21l6-6 4 4 8-10"/></svg>',
-        plage:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2"><path d="M17 20H2"/><path d="M6 12h12"/><circle cx="12" cy="4" r="2"/><path d="M2 20l4-8h12l4 8"/></svg>',
-        montagne:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2"><path d="M8 3l4 8 5-5 5 15H2L8 3z"/></svg>',
-        ville:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg>'
-      };
       const poiHtml=`<div class="fiche-poi">${lines.slice(0,10).map((l,i)=>{
         const parts=l.split(/\s*:\s*/);
         const name=parts[0]||l;
         const desc=parts.length>1?parts.slice(1).join(': '):'';
-        const type=/plage|mer|côte|lac\b/i.test(l)?'plage':/montagne|alp|glacier|sommet/i.test(l)?'montagne':/musée|temple|château|patrimoine|cathédrale|église|médiéval/i.test(l)?'culture':/aventure|sport|safari|ski/i.test(l)?'aventure':'ville';
-        return`<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiColors[i%poiColors.length]}">${String(i+1).padStart(2,'0')}.</div><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:14px">${typeIcons[type]||'📍'}</span><div class="fiche-poi-name">${E(name)}</div></div>${desc?`<div class="fiche-poi-desc">${E(desc)}</div>`:''}</div>`;
+        return`<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiColors[i%poiColors.length]}">${String(i+1).padStart(2,'0')}.</div><div class="fiche-poi-name">${E(name)}</div>${desc?`<div class="fiche-poi-desc">${E(desc)}</div>`:''}</div>`;
       }).join('')}</div>`;
-      return`<div style="margin-top:8px">${poiHtml}</div>`;
+      return`<div style="grid-column:span 2"><div style="text-align:center;margin-bottom:20px"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)">CHECK-LIST</div><div style="font-family:'Playfair Display',var(--font-display),serif;font-size:24px;font-weight:700;color:var(--text-dark);margin-top:6px">Principaux lieux d'intérêt</div><div style="width:40px;height:3px;background:var(--accent);border-radius:2px;margin:8px auto 0"></div></div>${poiHtml}</div>`;
     }
     
     /* ── TOUR-OPERATEURS → cards grid ── */
@@ -1398,7 +1388,7 @@ function openFiche(id){
 *{margin:0;padding:0;box-sizing:border-box}
 .fiche-hero{position:relative;height:420px;background-size:cover;background-position:center;display:flex;align-items:flex-end}
 .fiche-hero-overlay{position:absolute;inset:0;background:linear-gradient(170deg,rgba(0,0,0,.1) 0%,rgba(0,0,0,.25) 40%,rgba(0,0,0,.8) 100%)}
-.fiche-hero-content{position:relative;z-index:1;padding:40px 48px 44px;color:#fff;width:100%}
+.fiche-hero-content{position:relative;z-index:1;padding:40px 48px 72px;color:#fff;width:100%}
 .fiche-hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:30px;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;border:1px solid rgba(255,255,255,.2)}
 .fiche-hero-flag{width:28px;height:20px;border-radius:3px;object-fit:cover}
 .fiche-hero-title{font-family:'Playfair Display',serif;font-size:52px;font-weight:800;letter-spacing:-1.5px;text-shadow:0 3px 12px rgba(0,0,0,.4);line-height:1.1}
@@ -1406,7 +1396,7 @@ function openFiche(id){
 .fiche-hero-sub{font-size:16px;opacity:.85;margin-top:10px;font-weight:300;max-width:600px;line-height:1.5;font-family:'Outfit',sans-serif}
 .fiche-close{display:none}
 .fiche-modal-body{padding:0 48px 60px;max-width:1000px;margin:0 auto;font-family:'Outfit',sans-serif}
-.fiche-essentials{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:-50px 48px 0;position:relative;z-index:2}
+.fiche-essentials{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:-30px 48px 0;position:relative;z-index:2}
 .fiche-essential{border-radius:16px;padding:24px 22px 20px;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.08);border:1px solid #E2E8F0;position:relative;overflow:hidden}
 .fiche-essential-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .fiche-essential-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
@@ -1414,10 +1404,9 @@ function openFiche(id){
 .fiche-mosaic{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:160px 160px;gap:10px;margin:36px 0;border-radius:16px;overflow:hidden}
 .fiche-mosaic-img{width:100%;height:100%;object-fit:cover;display:block}
 .fiche-mosaic>div:first-child{grid-row:span 2}.fiche-mosaic>div{overflow:hidden;border-radius:4px}
-.fiche-section-divider{text-align:center;margin:48px 0 32px;position:relative}
-.fiche-section-divider::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,#E2E8F0 20%,#E2E8F0 80%,transparent)}
-.fiche-section-divider-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0891B2;background:#fff;padding:0 20px;position:relative}
-.fiche-section-divider-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#1A2332;margin-top:8px;position:relative}
+.fiche-section-divider{text-align:center;margin:48px 0 32px}
+.fiche-section-divider-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0891B2}
+.fiche-section-divider-title{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#1A2332;margin-top:10px}
 .fiche-section-divider-line{width:40px;height:3px;background:#0891B2;border-radius:2px;margin:10px auto 0}
 .fiche-sections{display:grid;grid-template-columns:1fr 1fr;gap:24px}
 .fiche-sect{border-radius:16px;padding:28px 26px;background:#FAFBFC;border:1px solid #E8ECF1;position:relative;overflow:hidden}
