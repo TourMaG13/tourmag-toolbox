@@ -1168,233 +1168,218 @@ function openFiche(id){
   const flagHtml=cc?`<img class="fiche-hero-flag" src="https://flagcdn.com/w40/${cc}.png" alt="${country}">`:''
   const fd=m.ficheData;
   const sections=fd.sections||[];
-
-  /* ═══ FRONTEND EXTRACTION: parse sections text into structured data when backend fields missing ═══ */
-  function findSection(keyword){return sections.find(s=>(s.title||'').toLowerCase().includes(keyword))}
-  function splitLines(content){
-    if(!content)return[];
-    /* Split on newlines first, then on " - " patterns (but not inside words like "haut-de-gamme") */
-    let lines=content.split(/\n/).flatMap(l=>l.split(/(?<=\.) - |(?<=\w) - (?=[A-ZÀ-Ü])/));
-    return lines.map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>5);
-  }
   
-  /* Auto-extract MAE */
-  if(!(fd.mae||m.mae||{}).level){
-    const maeS=findSection('mae')||findSection('conseil');
-    if(maeS){
-      const lines=splitLines(maeS.content);
-      const levelLine=lines.find(l=>/vigilance|déconseillé|sûr|faible/i.test(l));
-      const level=levelLine?(levelLine.includes('renforcée')?'Vigilance renforcée':levelLine.includes('Déconseillé')?'Déconseillé sauf raison impérative':'Vigilance normale'):'Vigilance normale';
-      const safeZones=lines.filter(l=>/sûr|safe|faible|aucune zone dangereuse/i.test(l)).map(l=>l.replace(/.*:\s*/,''));
-      const dangerZones=lines.filter(l=>/éviter|danger|risqu|quartiers/i.test(l)).map(l=>l.replace(/.*:\s*/,''));
-      const recs=lines.filter(l=>!/vigilance|zone|sûr|éviter|danger|faible/i.test(l)).slice(0,5);
-      fd.mae={level,safeZones:safeZones.slice(0,4),cautionZones:[],dangerZones:dangerZones.slice(0,4),recommendations:recs};
-    }
+  /* Helper: split section content into clean lines */
+  function getLines(content){
+    if(!content)return[];
+    return content.split(/\n/).flatMap(l=>l.split(/(?<=\w[.)]) - (?=[A-ZÀ-Ü])/)).map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>5);
   }
-  /* Auto-extract formalities */
-  if(!(fd.formalities||m.formalities||{}).passport){
-    const formS=findSection('formalit');
-    if(formS){
-      const lines=splitLines(formS.content);
-      const find=(kw)=>lines.find(l=>l.toLowerCase().includes(kw))||'';
-      fd.formalities={passport:find('passeport')||find('cni'),visa:find('visa'),vaccines:find('vaccin'),currency:find('devis')||find('monnaie')||find('vignette')||find('douane')};
-    }
-  }
-  /* Auto-extract tourism data */
-  if(!(fd.tourism||m.tourism||{}).visitorsPerYear){
-    const tourS=findSection('dynamisme')||findSection('touristique')||findSection('fréquentation');
-    if(tourS){
-      const txt=tourS.content||'';
-      const lines=splitLines(txt);
-      /* Multiple regex patterns for visitor numbers */
-      const numMatch=txt.match(/(?:environ\s+)?(\d[\d.,]*)\s*millions?\s*(?:de\s+)?(?:visit|tourist)/i)
-        ||txt.match(/fréquentation[^:]*:\s*(?:environ\s+)?(\d[\d.,]*)\s*millions?/i)
-        ||txt.match(/(\d[\d.,]*)\s*millions?\s*(?:de\s+)?visit/i);
-      /* Growth patterns */
-      const growthMatch=txt.match(/(?:croissance|hausse|progression)[^:]*:\s*(\d+)/i)
-        ||txt.match(/(\d+)\s*%\s*(?:de\s+)?(?:croissance|hausse|annuel)/i)
-        ||txt.match(/(\d+)-(\d+)%/i);
-      /* Season patterns — look for month names after season keywords */
-      const months=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-      const monthAbbr=['jan','fév','mar','avr','mai','jui','juil','aoû','sep','oct','nov','déc'];
-      let highMonths=[];
-      const seasonMatch=txt.match(/(?:haute\s+saison|pic|été|hiver)[^.]*?(?:[:,]\s*)([\wé\s,-àù]+?)(?:\.|$|\n)/i);
-      if(seasonMatch){
-        months.forEach((mo,i)=>{
-          if(seasonMatch[1].toLowerCase().includes(mo.substring(0,3)))highMonths.push(mo);
-        });
-      }
-      /* If no explicit season match, try to find month clusters */
-      if(!highMonths.length){
-        months.forEach(mo=>{
-          const moRx=new RegExp(mo.substring(0,4)+'[a-zéû]*','i');
-          if(moRx.test(txt)&&/pic|haute|idéal|recommand/i.test(txt.substring(Math.max(0,txt.search(moRx)-60),txt.search(moRx)+60)))highMonths.push(mo);
-        });
-      }
-      /* French visitors */
-      const frMatch=txt.match(/(\d[\d\s.,]*)\s*(?:visiteurs?\s+)?français/i)||txt.match(/clientèle\s+française[^.]*?(\d[\d\s.,]*)/i);
-      /* Ranking */
-      const rankMatch=txt.match(/(\d+[eè]me?\s+destination[^,.]*)/i)||txt.match(/(premier|deuxième|troisième)[^,.]*destination[^,.]+/i);
-      /* Trends */
-      const trends=lines.filter(l=>/tendance|hausse|croissance|augment|tourisme\s+\w+\s+en/i.test(l)).slice(0,4);
-      
-      fd.tourism={
-        visitorsPerYear:numMatch?(numMatch[1].replace(',','.')+' millions'):'',
-        growthPercent:growthMatch?parseInt(growthMatch[1]):0,
-        frenchVisitors:frMatch?frMatch[1].trim():'',
-        ranking:rankMatch?rankMatch[1]:'',
-        highSeason:highMonths,
-        lowSeason:[],
-        trends:trends.length?trends:lines.filter(l=>/dynamique|croissance|reprise/i.test(l)).slice(0,3)
-      };
-    }
-  }
-  /* Auto-extract POI — NO TRUNCATION */
-  if(!(fd.pointsOfInterest||m.pointsOfInterest||[]).length){
-    const poiS=findSection('intérêt')||findSection('interet')||findSection('incontournable');
-    if(poiS){
-      const lines=splitLines(poiS.content);
-      fd.pointsOfInterest=lines.slice(0,10).map(l=>{
-        const parts=l.split(/\s*:\s*/);
-        const name=(parts[0]||l).replace(/\([^)]*\)/,'').trim();
-        const desc=parts.length>1?parts.slice(1).join(': '):'';
-        const type=/plage|mer|côte|balnéaire|lac\b/i.test(l)?'plage':/montagne|alp|trek|rando|glacier|sommet/i.test(l)?'nature':/musée|temple|palace|château|patrimoine|cathédrale|église|historique|médiéval/i.test(l)?'culture':/aventure|sport|safari|ski|parachut/i.test(l)?'aventure':'ville';
-        return{name,description:desc,type,mustSee:lines.indexOf(l)<3};
-      });
-    }
-  }
-  /* Auto-extract TO — NO TRUNCATION */
-  if(!(fd.tourOperators||m.tourOperators||[]).length){
-    const toS=findSection('opérateur')||findSection('operateur');
-    if(toS){
-      const lines=splitLines(toS.content);
-      fd.tourOperators=lines.slice(0,10).map(l=>{
-        const parts=l.split(/\s*:\s*/);
-        return{name:(parts[0]||l).trim(),specialty:parts.length>1?parts.slice(1).join(', '):'',products:''};
-      });
-    }
-  }
-  /* Auto-extract sales tips — NO TRUNCATION */
-  if(!(fd.salesTips||m.salesTips||{}).targetClients){
-    const saleS=findSection('vente')||findSection('commercial');
-    if(saleS){
-      const lines=splitLines(saleS.content);
-      const find=(kw)=>{const l=lines.find(x=>x.toLowerCase().includes(kw));return l?l.replace(/^[^:]*:\s*/,''):''};
-      const targets=find('cible')||find('clientèle');
-      const args=lines.filter(l=>/argument|atout|point fort|stratég|principal/i.test(l)).map(l=>l.replace(/^[^:]*:\s*/,''));
-      fd.salesTips={
-        targetClients:targets?targets.split(/[,;]/).map(s=>s.trim()).filter(s=>s.length>2):[],
-        avgBudget:find('budget')||find('panier'),
-        idealDuration:find('durée'),
-        bestBookingPeriod:find('réserv')||find('anticip')||find('période'),
-        bestArguments:args.length?args:lines.filter(l=>/argument|conseil|astuce|upsell/i.test(l)).slice(0,4).map(l=>l.replace(/^[^:]*:\s*/,'')),
-        crossSell:(find('extension')||find('upsell')||find('cross')).split(/[,;]/).map(s=>s.trim()).filter(s=>s.length>2)
-      };
-    }
-  }
-  /* Propagate extracted data back to m for the rendering */
-  if(fd.mae)m.mae=fd.mae;
-  if(fd.formalities)m.formalities=fd.formalities;
-  if(fd.tourism)m.tourism=fd.tourism;
-  if(fd.pointsOfInterest)m.pointsOfInterest=fd.pointsOfInterest;
-  if(fd.tourOperators)m.tourOperators=fd.tourOperators;
-  if(fd.salesTips)m.salesTips=fd.salesTips;
-
-  /* ═══ ESSENTIALS — full text ═══ */
+  function getSection(kw){return sections.find(s=>(s.title||'').toLowerCase().includes(kw))}
+  
+  /* ═══ ESSENTIALS ═══ */
   const ess=fd.essentials||m.essentials||{};
   const essCards=[
     {label:'VISA & PASSEPORT',desc:ess.visa||'',color:'#0891B2',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'},
     {label:'SANTÉ & VACCINS',desc:ess.sante||'',color:'#D97706',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'},
     {label:'DEVISE & BUDGET',desc:ess.devise||'',color:'#059669',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'}
   ];
-  if(!ess.visa&&sections.length>=2){
-    essCards[0].desc=(sections[0]?.content||'').split('\n').filter(l=>l.trim()).slice(0,2).map(l=>l.replace(/^-\s*/,'')).join('. ');
-    essCards[1].desc=(sections[1]?.content||'').split('\n').filter(l=>l.trim()).slice(0,2).map(l=>l.replace(/^-\s*/,'')).join('. ');
-  }
   const essHtml=essCards.filter(e=>e.desc).map(e=>`<div class="fiche-essential" style="border-top:3px solid ${e.color}"><div class="fiche-essential-icon" style="background:${e.color};color:#fff">${e.icon}</div><div class="fiche-essential-label" style="color:${e.color}">${e.label}</div><div class="fiche-essential-desc">${E(e.desc)}</div></div>`).join('');
 
+  /* ═══ PHOTOS ═══ */
   const photos=m.photos||[];
   const mosaicHtml=photos.length?`<div class="fiche-mosaic">${photos.slice(0,5).map(p=>`<div><img class="fiche-mosaic-img" src="${E(p)}" alt="${country}" onerror="this.parentElement.style.display='none'"></div>`).join('')}</div>`:'';
 
-  /* ═══ MAE — zones visuelles ═══ */
-  const mae=fd.mae||m.mae||{};
-  let maeHtml='';
-  if(mae.level||mae.safeZones){
-    const lvlColor=mae.level?.includes('Déconseillé')?'#DC2626':mae.level?.includes('renforcée')?'#D97706':'#059669';
-    maeHtml=`<div class="fiche-sect" style="grid-column:span 2;border-left:4px solid ${lvlColor}"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${lvlColor}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="fiche-sect-title" style="color:${lvlColor}">CONSEILS MAE</div><div style="margin-left:auto;padding:4px 14px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;background:${lvlColor}">${E(mae.level||'')}</div></div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">${(mae.safeZones||[]).map(z=>`<span style="padding:5px 12px;border-radius:8px;font-size:12px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0">✓ ${E(z)}</span>`).join('')}${(mae.cautionZones||[]).map(z=>`<span style="padding:5px 12px;border-radius:8px;font-size:12px;background:#FFFBEB;color:#D97706;border:1px solid #FCD34D">⚠ ${E(z)}</span>`).join('')}${(mae.dangerZones||[]).map(z=>`<span style="padding:5px 12px;border-radius:8px;font-size:12px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">✕ ${E(z)}</span>`).join('')}</div>${mae.recommendations?`<ul style="margin-top:14px;padding:0;list-style:none;font-size:13px;color:#475569;line-height:1.7">${mae.recommendations.map(r=>`<li style="padding:3px 0 3px 18px;position:relative"><span style="position:absolute;left:0;top:7px;width:5px;height:5px;border-radius:50%;background:${lvlColor};opacity:.5"></span>${E(r)}</li>`).join('')}</ul>`:''}</div>`;
+  /* ═══ SECTION RENDERER — smart visual rendering from text ═══ */
+  function renderSectionVisual(section, color){
+    const title=section.title||'';
+    const tl=title.toLowerCase();
+    const lines=getLines(section.content);
+    const icon=tl.includes('mae')||tl.includes('conseil')?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>':
+      tl.includes('formalit')?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>':
+      tl.includes('dynamisme')||tl.includes('touristique')?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>':
+      tl.includes('intérêt')?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"/></svg>':
+      tl.includes('opérateur')?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>':
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+    
+    let bodyHtml='';
+    const txt=section.content||'';
+    
+    /* ── DYNAMISME TOURISTIQUE → dataviz ── */
+    if(tl.includes('dynamisme')||tl.includes('touristique')){
+      /* Extract numbers from text */
+      const visitMatch=txt.match(/(?:environ\s+)?(\d[\d.,]*)\s*millions?/i);
+      const growthMatch=txt.match(/(\d+)[\s-]*(?:à\s*)?(?:\d+)?%/i);
+      const frenchMatch=txt.match(/(\d[\d\s.,]*)\s*(?:visiteurs?\s+)?français/i);
+      
+      /* Extract season months */
+      const months=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
+      const monthsFull=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+      const highMonths=new Set();
+      monthsFull.forEach((mo,i)=>{
+        const rx=new RegExp(mo.substring(0,4),'i');
+        /* Check if this month appears near "haute saison", "pic", "été", "hiver", "idéal" */
+        const idx=txt.search(rx);
+        if(idx>=0){
+          const context=txt.substring(Math.max(0,idx-80),idx+80).toLowerCase();
+          if(/haute|pic|idéal|recommand|meilleur|été|affluence forte/i.test(context))highMonths.add(i);
+        }
+      });
+      
+      /* Build dataviz cards */
+      let kpiHtml='<div style="display:flex;flex-wrap:wrap;gap:14px;margin:16px 0">';
+      if(visitMatch)kpiHtml+=`<div style="flex:1;min-width:140px;text-align:center;padding:20px;background:#F0FDFA;border-radius:14px"><div style="font-size:32px;font-weight:800;color:${color};line-height:1">${E(visitMatch[1])}</div><div style="font-size:12px;color:#64748B;margin-top:6px">millions de visiteurs / an</div></div>`;
+      if(growthMatch)kpiHtml+=`<div style="flex:1;min-width:140px;text-align:center;padding:20px;background:#ECFDF5;border-radius:14px"><div style="font-size:32px;font-weight:800;color:${color};line-height:1">+${E(growthMatch[1])}%</div><div style="font-size:12px;color:#64748B;margin-top:6px">croissance annuelle</div></div>`;
+      if(frenchMatch)kpiHtml+=`<div style="flex:1;min-width:140px;text-align:center;padding:20px;background:#F0FDF4;border-radius:14px"><div style="font-size:20px;font-weight:800;color:${color};line-height:1">${E(frenchMatch[1].trim())}</div><div style="font-size:12px;color:#64748B;margin-top:6px">visiteurs français / an</div></div>`;
+      kpiHtml+='</div>';
+      
+      /* Calendar */
+      let calHtml='';
+      if(highMonths.size>0){
+        calHtml=`<div style="margin:16px 0"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Saisonnalité</div><div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px">${months.map((mo,i)=>`<div style="padding:7px 0;text-align:center;border-radius:6px;font-size:11px;font-weight:600;${highMonths.has(i)?`background:${color};color:#fff`:'background:#F1F5F9;color:#64748B'}">${mo}</div>`).join('')}</div><div style="display:flex;gap:14px;margin-top:6px;font-size:10px;color:#64748B"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:${color}"></span>Haute saison</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#F1F5F9;border:1px solid #E2E8F0"></span>Basse saison</span></div></div>`;
+      }
+      
+      /* Trends as text */
+      const trendLines=lines.filter(l=>/tendance|hausse|croissance|augment|tourisme.*en\s/i.test(l));
+      const trendsHtml=trendLines.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">${trendLines.map(t=>`<span style="padding:5px 14px;border-radius:20px;font-size:12px;background:#F1F5F9;color:#475569">${E(t)}</span>`).join('')}</div>`:'';
+      
+      /* Remaining text lines (non-dataviz) */
+      const otherLines=lines.filter(l=>!visitMatch||!l.includes(visitMatch[0])).filter(l=>!growthMatch||!l.includes(growthMatch[0])).filter(l=>!trendLines.includes(l));
+      const otherHtml=otherLines.length?`<ul style="margin-top:14px;padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${otherLines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${color};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`:'';
+      
+      bodyHtml=(visitMatch||growthMatch)?kpiHtml+calHtml+trendsHtml+otherHtml:`<ul style="padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${lines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${color};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`;
+    }
+    
+    /* ── MAE → badge + zone pills ── */
+    else if(tl.includes('mae')||tl.includes('conseil')){
+      const levelLine=lines.find(l=>/vigilance|déconseillé|sûr|faible/i.test(l))||'';
+      const lvl=levelLine.includes('renforcée')?'Vigilance renforcée':levelLine.includes('Déconseillé')?'Déconseillé':levelLine.includes('faible')||levelLine.includes('sûr')?'Vigilance normale':'Vigilance normale';
+      const lvlC=lvl.includes('Déconseillé')?'#DC2626':lvl.includes('renforcée')?'#D97706':'#059669';
+      color=lvlC;
+      const badgeHtml=`<div style="margin-left:auto;padding:5px 16px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;background:${lvlC}">${lvl}</div>`;
+      
+      /* Zone pills */
+      const safeLines=lines.filter(l=>/sûr|safe|faible|aucune zone dangereuse|sécurit/i.test(l));
+      const dangerLines=lines.filter(l=>/éviter|danger|risqu|quartier/i.test(l));
+      const otherLines=lines.filter(l=>!safeLines.includes(l)&&!dangerLines.includes(l)&&l!==levelLine);
+      
+      let pillsHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">';
+      safeLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0">✓ ${E(l)}</span>`});
+      dangerLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">✕ ${E(l)}</span>`});
+      pillsHtml+='</div>';
+      
+      const recsHtml=otherLines.length?`<ul style="margin-top:8px;padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${otherLines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${lvlC};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`:'';
+      
+      return`<div class="fiche-sect" style="grid-column:span 2;border-left:4px solid ${lvlC}"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${lvlC}">${icon}</div><div class="fiche-sect-title" style="color:${lvlC}">${E(title)}</div>${badgeHtml}</div>${pillsHtml}${recsHtml}</div>`;
+    }
+    
+    /* ── FORMALITES → icon grid ── */
+    else if(tl.includes('formalit')){
+      const items=[
+        {kw:'passeport',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>',label:'Passeport',c:'#0891B2'},
+        {kw:'visa',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',label:'Visa',c:'#7C3AED'},
+        {kw:'vaccin',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',label:'Vaccins',c:'#059669'},
+        {kw:'devis',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',label:'Devise',c:'#D97706'}
+      ];
+      let gridHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">';
+      items.forEach(it=>{
+        const line=lines.find(l=>l.toLowerCase().includes(it.kw));
+        if(line)gridHtml+=`<div style="padding:16px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;display:flex;gap:12px;align-items:flex-start"><div style="flex-shrink:0;margin-top:2px">${it.icon}</div><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${it.c};margin-bottom:5px">${it.label}</div><div style="font-size:13px;color:#334155;line-height:1.55">${E(line)}</div></div></div>`;
+      });
+      /* Lines that didn't match any keyword */
+      const other=lines.filter(l=>!items.some(it=>l.toLowerCase().includes(it.kw)));
+      if(other.length)gridHtml+=other.map(l=>`<div style="padding:14px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;font-size:13px;color:#334155;line-height:1.55;grid-column:span 2">${E(l)}</div>`).join('');
+      gridHtml+='</div>';
+      return`<div class="fiche-sect" style="grid-column:span 2"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${color}">${icon}</div><div class="fiche-sect-title" style="color:${color}">${E(title)}</div></div>${gridHtml}</div>`;
+    }
+    
+    /* ── POINTS D'INTERET → numbered cards ── */
+    else if(tl.includes('intérêt')||tl.includes('interet')){
+      const poiColors=['#DC2626','#D97706','#059669','#7C3AED','#0891B2','#2563EB','#EC4899','#F59E0B'];
+      const typeIcons={nature:'🌿',culture:'🏛️',aventure:'🧗',plage:'🏖️',ville:'🏙️',montagne:'⛰️'};
+      const poiHtml=`<div class="fiche-poi">${lines.slice(0,10).map((l,i)=>{
+        const parts=l.split(/\s*:\s*/);
+        const name=parts[0]||l;
+        const desc=parts.length>1?parts.slice(1).join(': '):'';
+        const type=/plage|mer|côte|lac\b/i.test(l)?'plage':/montagne|alp|glacier|sommet/i.test(l)?'montagne':/musée|temple|château|patrimoine|cathédrale|église|médiéval/i.test(l)?'culture':/aventure|sport|safari|ski/i.test(l)?'aventure':'ville';
+        return`<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiColors[i%poiColors.length]}">${String(i+1).padStart(2,'0')}.</div><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="font-size:14px">${typeIcons[type]||'📍'}</span><div class="fiche-poi-name">${E(name)}</div></div>${desc?`<div class="fiche-poi-desc">${E(desc)}</div>`:''}</div>`;
+      }).join('')}</div>`;
+      return`<div style="margin-top:8px">${poiHtml}</div>`;
+    }
+    
+    /* ── TOUR-OPERATEURS → cards grid ── */
+    else if(tl.includes('opérateur')||tl.includes('operateur')){
+      const toHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px">${lines.slice(0,10).map(l=>{
+        const parts=l.split(/\s*:\s*/);
+        const name=parts[0]||l;
+        const spec=parts.length>1?parts.slice(1).join(': '):'';
+        return`<div style="padding:16px;border-radius:12px;background:#fff;border:1px solid #E8ECF1"><div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:6px">${E(name)}</div>${spec?`<div style="font-size:12.5px;color:#7C3AED;line-height:1.5">${E(spec)}</div>`:''}</div>`;
+      }).join('')}</div>`;
+      return`<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:8px">${E(title)}</div>${toHtml}</div>`;
+    }
+    
+    /* ── CONSEILS DE VENTE → visual blocks ── */
+    else if(tl.includes('vente')||tl.includes('commercial')){
+      const iconMap={'cible':'🎯','budget':'💰','durée':'📅','réserv':'🕐','argument':'💡','extension':'🔗','période':'📆'};
+      let hasBlocks=false;
+      const blockItems=[];
+      lines.forEach(l=>{
+        const kw=Object.keys(iconMap).find(k=>l.toLowerCase().includes(k));
+        if(kw&&l.includes(':')){
+          blockItems.push({icon:iconMap[kw],label:l.split(':')[0].trim(),val:l.split(':').slice(1).join(':').trim()});
+          hasBlocks=true;
+        }
+      });
+      if(hasBlocks){
+        const blocksHtml=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:8px">${blockItems.map(b=>`<div style="display:flex;gap:10px;padding:14px;border-radius:10px;background:#FAFBFC;border:1px solid #E8ECF1"><span style="font-size:20px;flex-shrink:0">${b.icon}</span><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:3px">${E(b.label)}</div><div style="font-size:13px;font-weight:600;color:#1E293B;line-height:1.45">${E(b.val)}</div></div></div>`).join('')}</div>`;
+        /* Non-block lines as arguments */
+        const argLines=lines.filter(l=>!blockItems.some(b=>l.includes(b.val)));
+        const argsHtml=argLines.length?`<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Arguments clés</div>${argLines.map(a=>`<div style="padding:10px 16px;margin-bottom:6px;border-radius:8px;background:#F0FDFA;border-left:3px solid #0891B2;font-size:13px;color:#334155;line-height:1.5">${E(a)}</div>`).join('')}</div>`:'';
+        return`<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:8px">${E(title)}</div>${blocksHtml}${argsHtml}</div>`;
+      }
+      /* Fallback: standard list */
+    }
+    
+    /* ── DEFAULT: clean list ── */
+    if(!bodyHtml){
+      bodyHtml=`<ul style="padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${lines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${color};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`;
+    }
+    
+    return`<div class="fiche-sect"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${color}">${icon}</div><div class="fiche-sect-title" style="color:${color}">${E(title)}</div></div>${bodyHtml}</div>`;
   }
-
-  /* ═══ FORMALITIES — icon grid ═══ */
-  const form=fd.formalities||m.formalities||{};
-  let formHtml='';
-  if(form.passport||form.visa){
-    const items=[
-      {icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0891B2" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 10h20"/></svg>',label:'Passeport',val:form.passport||''},
-      {icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',label:'Visa',val:form.visa||''},
-      {icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',label:'Vaccins',val:form.vaccines||''},
-      {icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',label:'Devise',val:form.currency||''}
-    ].filter(x=>x.val);
-    formHtml=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px">${items.map(it=>`<div style="padding:16px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;display:flex;gap:12px;align-items:flex-start"><div style="flex-shrink:0;margin-top:2px">${it.icon}</div><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:4px">${it.label}</div><div style="font-size:13px;color:#334155;line-height:1.5">${E(it.val)}</div></div></div>`).join('')}</div>`;
-  }
-
-  /* ═══ TOURISM — dataviz ═══ */
-  const tour=fd.tourism||m.tourism||{};
-  let tourHtml='';
-  if(tour.visitorsPerYear||tour.ranking){
-    const months=['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Août','Sep','Oct','Nov','Déc'];
-    const highM=(tour.highSeason||[]).map(m=>m.toLowerCase().substring(0,3));
-    const calHtml=months.map(mo=>{const isH=highM.some(h=>mo.toLowerCase().startsWith(h.substring(0,3)));return`<div style="padding:6px 0;text-align:center;border-radius:6px;font-size:11px;font-weight:600;${isH?'background:#059669;color:#fff':'background:#F1F5F9;color:#64748B'}">${mo}</div>`}).join('');
-    tourHtml=`<div class="fiche-sect" style="grid-column:span 2;margin-top:20px"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:#059669"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="fiche-sect-title" style="color:#059669">DYNAMISME TOURISTIQUE</div></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px"><div style="text-align:center;padding:16px;background:#F0FDFA;border-radius:12px"><div style="font-size:28px;font-weight:800;color:#059669">${E(tour.visitorsPerYear||'')}</div><div style="font-size:11px;color:#64748B;margin-top:4px">visiteurs / an</div></div>${tour.growthPercent?`<div style="text-align:center;padding:16px;background:#ECFDF5;border-radius:12px"><div style="font-size:28px;font-weight:800;color:#059669">+${tour.growthPercent}%</div><div style="font-size:11px;color:#64748B;margin-top:4px">croissance</div></div>`:''}<div style="text-align:center;padding:16px;background:#F0FDF4;border-radius:12px"><div style="font-size:15px;font-weight:700;color:#059669">${E(tour.ranking||tour.frenchVisitors||'')}</div></div></div><div style="margin-top:20px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Saisonnalité</div><div style="display:grid;grid-template-columns:repeat(12,1fr);gap:4px">${calHtml}</div><div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:#64748B"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#059669"></span>Haute saison</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:3px;background:#F1F5F9"></span>Basse saison</span></div></div>${tour.trends?`<div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px">${tour.trends.map(t=>`<span style="padding:5px 12px;border-radius:20px;font-size:11px;background:#F1F5F9;color:#475569">${E(t)}</span>`).join('')}</div>`:''}</div>`;
-  }
-
-  /* ═══ POI — cards with type icons ═══ */
-  const pois=fd.pointsOfInterest||m.pointsOfInterest||[];
-  let poiHtml='';
-  if(pois.length){
-    const poiC=['#DC2626','#D97706','#059669','#7C3AED','#0891B2','#2563EB'];
-    const typeI={nature:'🌿',culture:'🏛️',aventure:'🧗',plage:'🏖️',ville:'🏙️'};
-    poiHtml=`<div class="fiche-section-divider"><span class="fiche-section-divider-label">CHECK-LIST</span><div class="fiche-section-divider-title">Les incontournables</div><div class="fiche-section-divider-line"></div></div><div class="fiche-poi">${pois.slice(0,8).map((p,i)=>`<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiC[i%poiC.length]}">${String(i+1).padStart(2,'0')}.</div><div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px">${typeI[p.type]||'📍'}</span><div class="fiche-poi-name">${E(p.name)}</div></div>${p.description?`<div class="fiche-poi-desc">${E(p.description)}</div>`:''}${p.mustSee?'<div style="margin-top:6px;font-size:10px;color:#D97706;font-weight:700">★ INCONTOURNABLE</div>':''}</div>`).join('')}</div>`;
-  }
-
-  /* ═══ TO — cards ═══ */
-  const tos=fd.tourOperators||m.tourOperators||[];
-  let tosHtml=tos.length?`<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#7C3AED;margin-bottom:10px">Tour-opérateurs référents</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">${tos.map(to=>`<div style="padding:16px;border-radius:12px;background:#fff;border:1px solid #E8ECF1"><div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px">${E(to.name)}</div><div style="font-size:12px;color:#7C3AED;font-weight:600;margin-bottom:6px">${E(to.specialty||'')}</div>${to.products?`<div style="font-size:11px;color:#64748B">${E(to.products)}</div>`:''}</div>`).join('')}</div>`:'';
-
-  /* ═══ SALES TIPS — visual blocks ═══ */
-  const tips=fd.salesTips||m.salesTips||{};
-  let tipsHtml='';
-  if(tips.targetClients||tips.avgBudget){
-    const ti=[{icon:'🎯',l:'Cibles clients',v:(tips.targetClients||[]).join(', ')},{icon:'💰',l:'Budget moyen',v:tips.avgBudget||''},{icon:'📅',l:'Durée idéale',v:tips.idealDuration||''},{icon:'🕐',l:'Réservation',v:tips.bestBookingPeriod||''}].filter(t=>t.v);
-    tipsHtml=`<div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#2563EB;margin-bottom:10px;margin-top:24px">Conseils de vente</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">${ti.map(t=>`<div style="display:flex;gap:10px;padding:14px;border-radius:10px;background:#FAFBFC;border:1px solid #E8ECF1"><span style="font-size:20px">${t.icon}</span><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:2px">${t.l}</div><div style="font-size:13px;font-weight:600;color:#1E293B">${E(t.v)}</div></div></div>`).join('')}</div>${tips.bestArguments?`<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Arguments clés</div>${tips.bestArguments.map(a=>`<div style="padding:8px 14px;margin-bottom:6px;border-radius:8px;background:#F0FDFA;border-left:3px solid #0891B2;font-size:13px;color:#334155">${E(a)}</div>`).join('')}</div>`:''}${tips.crossSell?`<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:#64748B;margin-right:4px">Extensions :</span>${tips.crossSell.map(c=>`<span style="padding:4px 10px;border-radius:16px;font-size:11px;background:#EEF2FF;color:#4338CA;font-weight:500">${E(c)}</span>`).join('')}</div>`:''}`;
-  }
+  
+  /* ═══ GROUP SECTIONS ═══ */
+  const pratiqueKeys=['mae','conseil','formalit','dynamisme','touristique','intérêt','interet'];
+  const venteKeys=['opérateur','operateur','vente','commercial'];
+  const pratSects=sections.filter(s=>{const t=(s.title||'').toLowerCase();return !venteKeys.some(k=>t.includes(k))});
+  const ventSects=sections.filter(s=>{const t=(s.title||'').toLowerCase();return venteKeys.some(k=>t.includes(k))});
+  
+  const pratiqueColors=['#0891B2','#D97706','#059669','#7C3AED'];
+  const venteColors=['#7C3AED','#2563EB'];
+  
+  const pratHtml=pratSects.length?pratSects.map((s,i)=>renderSectionVisual(s,pratiqueColors[i%pratiqueColors.length])).join(''):'';
+  const ventHtml=ventSects.length?ventSects.map((s,i)=>renderSectionVisual(s,venteColors[i%venteColors.length])).join(''):'';
 
   /* ═══ NEWS ═══ */
   const destNews=m.destNews||[];
   let newsHtml='';
-  const newsArts=destNews.length?destNews:[];
-  if(!newsArts.length){modules.forEach(mod=>{if(!mod.articles)return;mod.articles.forEach(a=>{if((a.title||'').toLowerCase().includes(country.toLowerCase()))newsArts.push(a)})})}
-  if(newsArts.length){
-    newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${newsArts.slice(0,5).map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<a class="fiche-news-item" href="${E(a.url||'#')}" target="_blank">${a.image?`<img class="fiche-news-item-img" src="${E(a.image)}" onerror="this.style.display='none'">`:''}<div class="fiche-news-item-title">${E(a.title)}${a.description?`<div style="font-size:11px;opacity:.6;margin-top:2px">${E(a.description)}</div>`:''}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`}).join('')}</div>${m.destNewsUpdatedAt?`<div style="margin-top:8px;font-size:10px;opacity:.4;text-align:right">Mis à jour : ${new Date(m.destNewsUpdatedAt).toLocaleDateString('fr-FR')}</div>`:''}</div>`;
+  if(destNews.length){
+    newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${destNews.slice(0,5).map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<a class="fiche-news-item" href="${E(a.url||'#')}" target="_blank"><div class="fiche-news-item-title">${E(a.title)}${a.description?`<div style="font-size:11px;opacity:.6;margin-top:3px">${E(a.description)}</div>`:''}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`}).join('')}</div>${m.destNewsUpdatedAt?`<div style="margin-top:8px;font-size:10px;opacity:.4;text-align:right">Mis à jour : ${new Date(m.destNewsUpdatedAt).toLocaleDateString('fr-FR')}</div>`:''}</div>`;
   }
 
-  /* ═══ FALLBACK for old fiches ═══ */
-  const venteK=['tour-opérateurs','tour-operateurs','conseils de vente','vente'];
-  let fallbackP='',fallbackV='';
-  if(!mae.level&&!form.passport){const ps=sections.filter(s=>!venteK.some(k=>(s.title||'').toLowerCase().includes(k)));if(ps.length)fallbackP=`<div class="fiche-sections">${ps.map((s,i)=>{const c=['#0891B2','#D97706','#059669','#7C3AED'][i%4];const lines=(s.content||'').split('\n').map(l=>l.trim()).filter(l=>l).map(l=>l.replace(/^-\s*/,''));return`<div class="fiche-sect"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${c}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="fiche-sect-title" style="color:${c}">${E(s.title)}</div></div><ul>${lines.map(l=>`<li style="--dot-color:${c}"><span>${E(l)}</span></li>`).join('')}</ul></div>`}).join('')}</div>`}
-  if(!tos.length&&!tips.targetClients){const vs=sections.filter(s=>venteK.some(k=>(s.title||'').toLowerCase().includes(k)));if(vs.length)fallbackV=`<div class="fiche-sections">${vs.map((s,i)=>{const c=['#DC2626','#2563EB'][i%2];const lines=(s.content||'').split('\n').map(l=>l.trim()).filter(l=>l).map(l=>l.replace(/^-\s*/,''));return`<div class="fiche-sect"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${c}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></div><div class="fiche-sect-title" style="color:${c}">${E(s.title)}</div></div><ul>${lines.map(l=>`<li style="--dot-color:${c}"><span>${E(l)}</span></li>`).join('')}</ul></div>`}).join('')}</div>`}
-
+  /* ═══ ASSEMBLE ═══ */
   const ficheHtml=`
     <div class="fiche-hero" style="background-image:url('${E(m.photo||'')}')"><div class="fiche-hero-overlay"></div><button class="fiche-close" onclick="closeFiche()">&times;</button><div class="fiche-hero-content"><div class="fiche-hero-badge">${flagHtml} FICHE PRATIQUE DESTINATION</div><div class="fiche-hero-title">Fiche pratique<br><em>${E(country)}</em></div><div class="fiche-hero-sub">${E(m.description||'')}</div></div></div>
     <div class="fiche-essentials" style="margin-top:-50px">${essHtml}</div>
     <div class="fiche-modal-body" style="padding-top:40px">
       ${mosaicHtml}
       <div class="fiche-section-divider" style="margin-top:48px"><span class="fiche-section-divider-label">INFOS PRATIQUES</span><div class="fiche-section-divider-title">Préparer le voyage</div><div class="fiche-section-divider-line"></div></div>
-      ${maeHtml||fallbackP}${formHtml}${tourHtml}${poiHtml}
+      <div class="fiche-sections">${pratHtml}</div>
       <div class="fiche-section-divider"><span class="fiche-section-divider-label">MÉMO PRO</span><div class="fiche-section-divider-title">Bien vendre la destination</div><div class="fiche-section-divider-line"></div></div>
-      ${tosHtml}${tipsHtml}${fallbackV}${newsHtml}
+      ${ventHtml}
+      ${newsHtml}
     </div>`;
 
-  /* Send to parent iframe with embedded styles */
+  /* Send to parent with styles */
   if(window.parent!==window){
     const ficheCSS=`<style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700;1,800&family=Outfit:wght@300;400;500;600;700&display=swap');
