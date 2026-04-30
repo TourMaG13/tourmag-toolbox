@@ -1174,8 +1174,10 @@ function openFiche(id){
     return content.split(/\n/).flatMap(l=>l.split(/(?<=\w[.)]) - (?=[A-ZÀ-Ü])/)).map(l=>l.trim().replace(/^-\s*/,'')).filter(l=>l.length>5);
   }
   function getSection(kw){return sections.find(s=>(s.title||'').toLowerCase().includes(kw))}
-  function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s}
+  function cap(s){if(!s)return'';s=s.trim();return s.charAt(0).toUpperCase()+s.slice(1)}
   function EC(s){return E(cap(s))}
+  /* Ensure text ends with period if it looks like a sentence */
+  function sentence(s){if(!s)return'';s=cap(s.trim());if(s.length>15&&!/[.!?]$/.test(s))s+='.';return s}
   
   /* ═══ ESSENTIALS ═══ */
   const ess=fd.essentials||m.essentials||{};
@@ -1266,11 +1268,11 @@ function openFiche(id){
       const otherLines=lines.filter(l=>!safeLines.includes(l)&&!dangerLines.includes(l)&&l!==levelLine);
       
       let pillsHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">';
-      safeLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0">✓ ${E(l)}</span>`});
-      dangerLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">✕ ${E(l)}</span>`});
+      safeLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#ECFDF5;color:#059669;border:1px solid #A7F3D0">✓ ${E(sentence(l))}</span>`});
+      dangerLines.forEach(l=>{pillsHtml+=`<span style="padding:6px 14px;border-radius:8px;font-size:12px;background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">✕ ${E(sentence(l))}</span>`});
       pillsHtml+='</div>';
       
-      const recsHtml=otherLines.length?`<ul style="margin-top:8px;padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${otherLines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${lvlC};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`:'';
+      const recsHtml=otherLines.length?`<ul style="margin-top:8px;padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${otherLines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${lvlC};opacity:.4"></span>${E(sentence(l))}</li>`).join('')}</ul>`:'';
       
       return`<div class="fiche-sect" style="grid-column:span 2;border-left:4px solid ${lvlC}"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${lvlC}">${icon}</div><div class="fiche-sect-title" style="color:${lvlC}">${E(title)}</div>${badgeHtml}</div>${pillsHtml}${recsHtml}</div>`;
     }
@@ -1286,11 +1288,11 @@ function openFiche(id){
       let gridHtml='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">';
       items.forEach(it=>{
         const line=lines.find(l=>l.toLowerCase().includes(it.kw));
-        if(line)gridHtml+=`<div style="padding:16px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;display:flex;gap:12px;align-items:flex-start"><div style="flex-shrink:0;margin-top:2px">${it.icon}</div><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${it.c};margin-bottom:5px">${it.label}</div><div style="font-size:13px;color:#334155;line-height:1.55">${E(line)}</div></div></div>`;
+        if(line)gridHtml+=`<div style="padding:16px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;display:flex;gap:12px;align-items:flex-start"><div style="flex-shrink:0;margin-top:2px">${it.icon}</div><div><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${it.c};margin-bottom:5px">${it.label}</div><div style="font-size:13px;color:#334155;line-height:1.55">${E(sentence(line))}</div></div></div>`;
       });
       /* Lines that didn't match any keyword */
       const other=lines.filter(l=>!items.some(it=>l.toLowerCase().includes(it.kw)));
-      if(other.length)gridHtml+=other.map(l=>`<div style="padding:14px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;font-size:13px;color:#334155;line-height:1.55;grid-column:span 2">${E(l)}</div>`).join('');
+      if(other.length)gridHtml+=other.map(l=>`<div style="padding:14px;border-radius:12px;background:#FAFBFC;border:1px solid #E8ECF1;font-size:13px;color:#334155;line-height:1.55;grid-column:span 2">${E(sentence(l))}</div>`).join('');
       gridHtml+='</div>';
       return`<div class="fiche-sect" style="grid-column:span 2"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${color}">${icon}</div><div class="fiche-sect-title" style="color:${color}">${E(title)}</div></div>${gridHtml}</div>`;
     }
@@ -1300,22 +1302,22 @@ function openFiche(id){
       const poiColors=['#DC2626','#D97706','#059669','#7C3AED','#0891B2','#2563EB','#EC4899','#F59E0B'];
       const poiHtml=`<div class="fiche-poi">${lines.slice(0,10).map((l,i)=>{
         const parts=l.split(/\s*:\s*/);
-        const name=parts[0]||l;
-        const desc=parts.length>1?parts.slice(1).join(': '):'';
+        const name=cap(parts[0]||l);
+        const desc=parts.length>1?sentence(parts.slice(1).join(': ')):'';
         return`<div class="fiche-poi-card"><div class="fiche-poi-num" style="color:${poiColors[i%poiColors.length]}">${String(i+1).padStart(2,'0')}.</div><div class="fiche-poi-name">${E(name)}</div>${desc?`<div class="fiche-poi-desc">${E(desc)}</div>`:''}</div>`;
       }).join('')}</div>`;
-      return`<div style="grid-column:span 2"><div style="text-align:center;margin-bottom:20px"><div style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent)">CHECK-LIST</div><div style="font-family:'Playfair Display',var(--font-display),serif;font-size:24px;font-weight:700;color:var(--text-dark);margin-top:6px">Principaux lieux d'intérêt</div><div style="width:40px;height:3px;background:var(--accent);border-radius:2px;margin:8px auto 0"></div></div>${poiHtml}</div>`;
+      return`<div style="grid-column:span 2"><div class="fiche-section-divider"><div class="fiche-section-divider-label">DESTINATIONS</div><div class="fiche-section-divider-title">Principaux lieux d'intérêt</div><div class="fiche-section-divider-line"></div></div>${poiHtml}</div>`;
     }
     
     /* ── TOUR-OPERATEURS → cards grid ── */
     else if(tl.includes('opérateur')||tl.includes('operateur')){
       const toHtml=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:8px">${lines.slice(0,10).map(l=>{
         const parts=l.split(/\s*:\s*/);
-        const name=parts[0]||l;
-        const spec=parts.length>1?parts.slice(1).join(': '):'';
+        const name=cap(parts[0]||l);
+        const spec=parts.length>1?sentence(parts.slice(1).join(': ')):'';
         return`<div style="padding:16px;border-radius:12px;background:#fff;border:1px solid #E8ECF1"><div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:6px">${E(name)}</div>${spec?`<div style="font-size:12.5px;color:#7C3AED;line-height:1.5">${E(spec)}</div>`:''}</div>`;
       }).join('')}</div>`;
-      return`<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:8px">${E(title)}</div>${toHtml}</div>`;
+      return`<div style="margin-bottom:32px"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:8px">${E(title)}</div>${toHtml}</div>`;
     }
     
     /* ── CONSEILS DE VENTE → visual blocks ── */
@@ -1331,10 +1333,10 @@ function openFiche(id){
         }
       });
       if(hasBlocks){
-        const blocksHtml=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:8px">${blockItems.map(b=>`<div style="display:flex;gap:10px;padding:14px;border-radius:10px;background:#FAFBFC;border:1px solid #E8ECF1"><span style="font-size:20px;flex-shrink:0">${b.icon}</span><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:3px">${E(b.label)}</div><div style="font-size:13px;font-weight:600;color:#1E293B;line-height:1.45">${E(b.val)}</div></div></div>`).join('')}</div>`;
+        const blocksHtml=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:8px">${blockItems.map(b=>`<div style="display:flex;gap:10px;padding:14px;border-radius:10px;background:#FAFBFC;border:1px solid #E8ECF1"><span style="font-size:20px;flex-shrink:0">${b.icon}</span><div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:3px">${E(cap(b.label))}</div><div style="font-size:13px;font-weight:600;color:#1E293B;line-height:1.45">${E(sentence(b.val))}</div></div></div>`).join('')}</div>`;
         /* Non-block lines as arguments */
         const argLines=lines.filter(l=>!blockItems.some(b=>l.includes(b.val)));
-        const argsHtml=argLines.length?`<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Arguments clés</div>${argLines.map(a=>`<div style="padding:10px 16px;margin-bottom:6px;border-radius:8px;background:#F0FDFA;border-left:3px solid #0891B2;font-size:13px;color:#334155;line-height:1.5">${E(a)}</div>`).join('')}</div>`:'';
+        const argsHtml=argLines.length?`<div style="margin-top:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748B;margin-bottom:8px">Arguments clés</div>${argLines.map(a=>`<div style="padding:10px 16px;margin-bottom:6px;border-radius:8px;background:#F0FDFA;border-left:3px solid #0891B2;font-size:13px;color:#334155;line-height:1.5">${E(sentence(a))}</div>`).join('')}</div>`:'';
         return`<div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${color};margin-bottom:8px">${E(title)}</div>${blocksHtml}${argsHtml}</div>`;
       }
       /* Fallback: standard list */
@@ -1342,7 +1344,7 @@ function openFiche(id){
     
     /* ── DEFAULT: clean list ── */
     if(!bodyHtml){
-      bodyHtml=`<ul style="padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${lines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${color};opacity:.4"></span>${E(l)}</li>`).join('')}</ul>`;
+      bodyHtml=`<ul style="padding:0;list-style:none;font-size:13.5px;line-height:1.75;color:#475569">${lines.map(l=>`<li style="padding:4px 0 4px 20px;position:relative;margin-bottom:4px"><span style="position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:${color};opacity:.4"></span>${E(sentence(l))}</li>`).join('')}</ul>`;
     }
     
     return`<div class="fiche-sect"><div class="fiche-sect-head"><div class="fiche-sect-icon" style="background:${color}">${icon}</div><div class="fiche-sect-title" style="color:${color}">${E(title)}</div></div>${bodyHtml}</div>`;
