@@ -39,5 +39,6 @@ jobs:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
           GENERATE_DEST_FICHE: ${{ github.event.inputs.generate_dest || '' }}
           DEST_FICHE_PHOTO: ${{ github.event.inputs.dest_photo || '' }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         run: |
           python scraper_tourmag_toolbox.py
