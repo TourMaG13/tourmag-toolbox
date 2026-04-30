@@ -281,8 +281,6 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
         except Exception as e: print(f"  ERR ({attempt+1}): {e}"); time.sleep(10) if attempt<retries-1 else None
     return None
 
-PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
-
 def search_pexels_photos(queries, count=5):
     """Search Pexels (with key) or Wikimedia Commons (free, no key) for destination photos."""
     photos = []
@@ -611,6 +609,7 @@ def scrape_thematiques(db):
 def enrich_dest_fiches(db):
     """Auto-detect destination fiches missing photos or news, and enrich them."""
     print("═══ ENRICHISSEMENT FICHES DESTINATIONS ═══")
+    print(f"  Pexels key: {'OK' if PEXELS_API_KEY else 'MISSING'}, Anthropic key: {'OK' if ANTHROPIC_API_KEY else 'MISSING'}")
     docs = list(db.collection("modules").where("type", "==", "focus").stream())
     enriched = 0
     
@@ -628,15 +627,29 @@ def enrich_dest_fiches(db):
         if not photos:
             needs_photos = True
         else:
-            # Check if photos are bad (unsplash source URLs or wikimedia junk)
-            bad_urls = [p for p in photos if "source.unsplash.com" in p or "upload.wikimedia" in p or not p.startswith("http")]
-            if len(bad_urls) >= 3:
+            # Check if photos are bad URLs (unsplash source, wikimedia, or static unsplash generic IDs)
+            generic_unsplash_ids = ["photo-1488085061387", "photo-1507525428034", "photo-1464822759023", "photo-1528181304800", "photo-1504674900247", "photo-1488646953014"]
+            def is_bad_photo(url):
+                if "source.unsplash.com" in url: return True
+                if "upload.wikimedia" in url: return True
+                if not url.startswith("http"): return True
+                for gid in generic_unsplash_ids:
+                    if gid in url: return True
+                return False
+            bad_urls = [p for p in photos if is_bad_photo(p)]
+            if len(bad_urls) >= 2:
                 needs_photos = True
         
         # Check hero photo too
         hero = data.get("photo", "")
         if not hero or "source.unsplash.com" in hero or "upload.wikimedia" in hero:
             needs_photos = True
+        # Also check if hero is a generic unsplash ID
+        if hero:
+            for gid in ["photo-1488085061387", "photo-1507525428034", "photo-1464822759023", "photo-1528181304800", "photo-1504674900247", "photo-1488646953014"]:
+                if gid in hero:
+                    needs_photos = True
+                    break
         
         # Check if news need enrichment
         news = data.get("destNews", [])
