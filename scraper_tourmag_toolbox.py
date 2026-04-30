@@ -14,6 +14,7 @@ from firebase_admin import credentials, firestore
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 FIREBASE_CREDS = os.environ.get("FIREBASE_CREDENTIALS", "")
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 EXPERT_FEEDS = [
     {"tag":"duthion","name":"Brice Duthion","role":"Expert Tourisme Urbain","rss":"https://www.tourmag.com/xml/syndication.rss?t=duthion","page":"https://www.tourmag.com/tags/duthion/"},
