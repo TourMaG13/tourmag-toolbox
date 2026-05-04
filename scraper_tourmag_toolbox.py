@@ -283,57 +283,72 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
 
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
-def search_pexels_photos(queries, count=5):
-    """Search Pexels (with key) or Wikimedia Commons (free, no key) for destination photos."""
+def search_pexels_photos(queries, count=5, country=""):
+    """Search Pexels for destination photos — landscape/monument focused."""
     photos = []
-    for q in queries[:count]:
+    seen_urls = set()
+    
+    for q in queries[:count * 2]:  # Try more queries to get enough unique results
+        if len(photos) >= count:
+            break
         found = False
-        # 1. Try Pexels if key available
+        
+        # 1. Try Pexels if key available — add country to query for relevance
         if PEXELS_API_KEY:
+            # Make query more specific by ensuring country is in it
+            search_q = q if country.lower() in q.lower() else f"{q} {country}"
             try:
                 r = requests.get("https://api.pexels.com/v1/search",
                     headers={"Authorization": PEXELS_API_KEY},
-                    params={"query": q, "per_page": 1, "orientation": "landscape"},
+                    params={"query": search_q, "per_page": 3, "orientation": "landscape", "size": "large"},
                     timeout=10)
                 if r.status_code == 200:
                     data = r.json()
-                    if data.get("photos"):
-                        photos.append(data["photos"][0]["src"]["large"])
-                        found = True
+                    for photo in data.get("photos", []):
+                        url = photo["src"]["large2x"] or photo["src"]["large"]
+                        if url not in seen_urls:
+                            seen_urls.add(url)
+                            photos.append(url)
+                            found = True
+                            break
             except Exception as e:
                 print(f"Pexels err: {e}", end=" ")
         
-        # 2. Fallback: Wikimedia Commons (free, no key, relevant photos)
+        # 2. Fallback: Wikimedia Commons with strict country search
         if not found:
+            wiki_q = q if country.lower() in q.lower() else f"{q} {country}"
             try:
                 r = requests.get("https://commons.wikimedia.org/w/api.php",
                     params={
                         "action": "query", "format": "json",
-                        "generator": "search", "gsrsearch": f"{q} tourism travel",
-                        "gsrlimit": 3, "gsrnamespace": 6,
-                        "prop": "imageinfo", "iiprop": "url|size",
-                        "iiurlwidth": 800
+                        "generator": "search", "gsrsearch": f"{wiki_q} landscape monument",
+                        "gsrlimit": 5, "gsrnamespace": 6,
+                        "prop": "imageinfo", "iiprop": "url|size|extmetadata",
+                        "iiurlwidth": 1200
                     },
                     headers=HEADERS, timeout=10)
                 if r.status_code == 200:
                     pages = r.json().get("query", {}).get("pages", {})
-                    for pid, page in pages.items():
+                    for pid, page in sorted(pages.items(), key=lambda x: x[1].get("index", 999)):
                         info = page.get("imageinfo", [{}])[0]
                         thumb = info.get("thumburl", "")
-                        if thumb and info.get("width", 0) > 200:
+                        w = info.get("width", 0)
+                        h = info.get("height", 0)
+                        # Only use landscape-oriented images of decent quality
+                        if thumb and w > 400 and (w >= h * 0.8) and thumb not in seen_urls:
+                            # Skip SVG, icons, logos
+                            if any(ext in thumb.lower() for ext in ['.svg', 'logo', 'icon', 'flag', 'coat_of_arms']):
+                                continue
+                            seen_urls.add(thumb)
                             photos.append(thumb)
                             found = True
                             break
             except Exception as e:
                 print(f"Wiki err: {e}", end=" ")
         
-        # 3. Last resort: get og:image from a travel page
-        if not found:
-            safe_q = requests.utils.quote(q)
-            photos.append(f"https://source.unsplash.com/800x500/?{safe_q}")
-        
         time.sleep(0.5)
-    return photos
+    
+    return photos[:count]
 
 
 def generate_dest_fiche(db, country, photo=""):
@@ -345,29 +360,30 @@ Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
 {{
   "summary": "Un résumé accrocheur et fluide de 3-4 phrases complètes, rédigé comme un texte d'appel pour agents de voyages. Décris l'attrait principal de la destination, son positionnement et ce qui la rend unique.",
   "essentials": {{
-    "visa": "UNE phrase complète et bien rédigée sur les conditions de visa et passeport",
+    "visa": "UNE phrase complète et bien rédigée sur les conditions de visa et passeport pour les Français",
     "sante": "UNE phrase complète et bien rédigée sur les recommandations sanitaires et vaccins",
-    "devise": "UNE phrase complète et bien rédigée sur la devise locale, le taux de change et le budget moyen"
+    "devise": "UNE phrase complète et bien rédigée sur la devise locale, le taux de change approximatif et le budget moyen"
   }},
-  "photoSearchTerms": ["monument ou paysage emblématique précis 1", "paysage naturel grandiose célèbre 2", "site touristique majeur 3", "panorama ou point de vue connu 4", "monument historique ou architectural célèbre 5"],
+  "photoSearchTerms": ["NOM EXACT d'un monument/paysage emblématique du pays 1", "NOM EXACT d'un autre lieu iconique 2", "NOM EXACT d'un paysage naturel grandiose du pays 3", "NOM EXACT d'un site touristique majeur 4", "NOM EXACT d'un panorama ou point de vue célèbre 5"],
   "sections": [
     {{"title": "Conseils MAE", "group": "pratique", "content": "- Niveau de vigilance : phrase complète décrivant le niveau actuel\\n- Zones sûres : phrase complète décrivant les régions sûres pour les touristes\\n- Zones à éviter : phrase complète décrivant les éventuelles zones déconseillées\\n- Recommandations : phrase complète avec les conseils pratiques de sécurité"}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : phrase complète détaillant les conditions de validité requises\\n- Visa : phrase complète expliquant les démarches et conditions d'obtention\\n- Vaccins : phrase complète listant les vaccinations recommandées ou obligatoires\\n- Devise et paiements : phrase complète sur la monnaie locale et les moyens de paiement acceptés"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : Le pays accueille environ X millions de visiteurs internationaux par an.\\n- Croissance : Le tourisme connaît une croissance annuelle de X%, porté par...\\n- Visiteurs français : La destination attire environ X visiteurs français chaque année.\\n- Haute saison : La haute saison s'étend de mois à mois, avec un pic en mois.\\n- Basse saison : La basse saison, de mois à mois, offre des tarifs plus attractifs.\\n- Tendances : phrase complète décrivant les tendances actuelles du marché touristique"}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description riche et engageante de 2-3 phrases, comme un guide touristique\\n- Lieu 2 : description riche et engageante de 2-3 phrases\\n- Lieu 3 : description riche et engageante de 2-3 phrases\\n- Lieu 4 : description riche et engageante de 2-3 phrases\\n- Lieu 5 : description riche et engageante de 2-3 phrases"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : phrase complète décrivant la spécialité de ce tour-opérateur et les types de circuits ou séjours proposés\\n- TO 2 : phrase complète décrivant ce TO et ses produits phares\\n- TO 3 : phrase complète décrivant ce TO et son positionnement"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : phrase complète décrivant les profils de clientèle les plus adaptés à cette destination\\n- Budget moyen : phrase complète indiquant le budget moyen par personne pour un séjour type\\n- Durée idéale : phrase complète recommandant la durée optimale de séjour\\n- Meilleure période de réservation : phrase complète sur le timing idéal de réservation\\n- Arguments clés : paragraphe de 2-3 phrases détaillant les arguments de vente principaux\\n- Extensions possibles : phrase complète suggérant des combinés ou extensions de voyage"}}
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : phrase complète détaillant les conditions de validité requises pour les ressortissants français\\n- Visa : phrase complète expliquant les démarches et conditions d'obtention\\n- Vaccins : phrase complète listant les vaccinations recommandées ou obligatoires\\n- Devise et paiements : phrase complète sur la monnaie locale et les moyens de paiement acceptés"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : Le pays accueille environ X millions de visiteurs internationaux par an.\\n- Croissance : Le tourisme connaît une croissance annuelle de X%, porté par...\\n- Visiteurs français : La destination attire environ X visiteurs français chaque année.\\n- Haute saison : La haute saison s'étend de mois à mois, avec un pic en mois.\\n- Basse saison : La basse saison, de mois à mois, offre des tarifs plus attractifs et moins d'affluence.\\n- Tendances : deux à trois phrases décrivant les tendances actuelles du marché touristique sur cette destination"}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description riche et engageante en 2-3 phrases, comme un guide touristique professionnel\\n- Lieu 2 : description riche et engageante en 2-3 phrases\\n- Lieu 3 : description riche et engageante en 2-3 phrases\\n- Lieu 4 : description riche et engageante en 2-3 phrases\\n- Lieu 5 : description riche et engageante en 2-3 phrases"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : phrase complète décrivant la spécialité de ce tour-opérateur et les types de circuits ou séjours proposés sur cette destination\\n- TO 2 : phrase complète décrivant ce TO et ses produits phares\\n- TO 3 : phrase complète décrivant ce TO et son positionnement"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : phrase complète décrivant les profils de clientèle les plus adaptés à cette destination\\n- Budget moyen : phrase complète indiquant le budget moyen par personne pour un séjour type de X jours\\n- Durée idéale : phrase complète recommandant la durée optimale de séjour et pourquoi\\n- Meilleure période de réservation : phrase complète sur le timing idéal de réservation\\n- Arguments clés : paragraphe de 2-3 phrases détaillant les arguments de vente principaux\\n- Extensions possibles : phrase complète suggérant des combinés ou extensions de voyage avec d'autres destinations proches"}}
   ]
 }}
-INSTRUCTIONS CRITIQUES :
-- photoSearchTerms = noms de LIEUX PRECIS, CELEBRES et PHOTOGENIQUES du pays. Privilégier les PAYSAGES GRANDIOSES et MONUMENTS EMBLEMATIQUES (ex: "Tour Eiffel Paris", "Lac Titicaca Andes", "Temples Angkor Wat Cambodge", "Fjords Norvège paysage", "Colisée Rome Italie"). NE PAS mettre de termes génériques comme "culture" ou "food".
-- STYLE D'ÉCRITURE : Rédige des PHRASES COMPLETES, fluides et agréables à lire. Chaque point doit se lire comme un texte professionnel, PAS comme un style télégraphique.
-- MAUVAIS EXEMPLE: "passeport valide 6 mois, visa non requis, vaccin fièvre jaune"
-- BON EXEMPLE: "Le passeport doit être valide au moins 6 mois après la date de retour. Aucun visa n'est requis pour les ressortissants français pour un séjour touristique de moins de 90 jours. La vaccination contre la fièvre jaune est obligatoire pour tous les voyageurs."
-- MAUVAIS EXEMPLE pour Points d'intérêt: "Machu Picchu : site inca, 2400m altitude, UNESCO"
-- BON EXEMPLE: "Machu Picchu : Perchée à 2 400 mètres d'altitude dans les Andes, cette cité inca du XVe siècle est l'un des sites archéologiques les plus spectaculaires au monde. Classée au patrimoine mondial de l'UNESCO, elle offre un panorama à couper le souffle sur les montagnes environnantes."
-- Dans Dynamisme touristique, donner des CHIFFRES REELS et PRECIS
-- essentials: UNE phrase COMPLETE et bien construite par champ"""
+REGLES CRITIQUES :
+1. photoSearchTerms DOIT contenir des NOMS EXACTS de lieux CELEBRES et EMBLEMATIQUES de {country} :
+   - POUR L'ALLEMAGNE : "Porte de Brandebourg Berlin", "Château Neuschwanstein Bavière", "Cathédrale de Cologne", "Forêt-Noire panorama", "Île de Rügen falaises"
+   - POUR L'ESPAGNE : "Sagrada Familia Barcelone", "Alhambra Grenade", "Plaza de España Séville", "Plage de la Concha Saint-Sébastien", "Tolède panorama"
+   - JAMAIS de termes génériques comme "food", "culture", "people", "tradition", "cuisine"
+   - Chaque terme doit être un LIEU GEOGRAPHIQUE PRECIS avec son nom propre
+2. STYLE : Rédige des PHRASES COMPLETES, fluides, comme un texte professionnel de guide touristique. PAS de style télégraphique.
+   - MAUVAIS : "passeport valide 6 mois, visa non requis, CNI suffisante"
+   - BON : "Les ressortissants français peuvent se rendre en Allemagne munis d'une simple carte nationale d'identité ou d'un passeport en cours de validité, sans aucun visa pour les séjours de moins de 90 jours."
+3. CHIFFRES : Dans Dynamisme touristique, donner des chiffres REELS et PRECIS."""
 
     print("  Generating...", end=" ", flush=True)
     text = call_haiku(prompt, max_tokens=4000)
@@ -394,13 +410,13 @@ INSTRUCTIONS CRITIQUES :
     # ═══ PHOTOS — Pexels or Wikimedia Commons ═══
     search_terms = fiche_data.get("photoSearchTerms", [
         f"{country} famous landmark",
-        f"{country} landscape nature",
-        f"{country} culture tradition",
-        f"{country} city architecture",
-        f"{country} local food cuisine"
+        f"{country} panoramic landscape",
+        f"{country} iconic monument",
+        f"{country} scenic view",
+        f"{country} historic architecture"
     ])
     print(f"  Photos: {search_terms[:2]}...", end=" ", flush=True)
-    photos = search_pexels_photos(search_terms, count=5)
+    photos = search_pexels_photos(search_terms, count=5, country=country)
     hero_photo = photos[0] if photos else ""
     if photo:
         hero_photo = photo
@@ -439,49 +455,50 @@ INSTRUCTIONS CRITIQUES :
     return mod_id
 
 def _fetch_news_for_dest(db, doc_ref, country):
-    """Fetch 5 latest tourism news for a destination via TourMaG RSS + Claude web search fallback."""
-    # 1. Try TourMaG RSS first (most reliable)
-    safe_country = requests.utils.quote(country.lower())
-    rss_url = f"https://www.tourmag.com/xml/syndication.rss?t={safe_country}"
-    xml = fetch_url(rss_url)
-    if xml and len(xml) > 100:
-        articles = parse_rss(xml, max_items=5)
-        if articles:
-            doc_ref.update({"destNews": articles, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
-            print(f"{len(articles)} articles (RSS)")
-            return
-    
-    # 2. Fallback: Claude web search
+    """Fetch 5 latest tourism news for a destination via Claude web search."""
     if not ANTHROPIC_API_KEY:
-        print("no key"); return
-    prompt = f"""Trouve les 5 dernières actualités tourisme/voyage concernant "{country}" publiées récemment.
-Pour chaque article, donne le titre complet, une description en une phrase, l'URL source et la date de publication.
-Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
-{{"articles": [{{"title": "Titre complet de l'article", "description": "Description en une phrase complète et informative", "url": "https://...", "date": "2025-06-01"}}]}}"""
+        print("skip (no API key)", end=""); return
+    prompt = f"""Recherche les 5 dernières actualités récentes liées au tourisme, aux voyages ou à l'actualité générale concernant "{country}".
+Cherche des articles de presse récents (moins de 3 mois) sur des sujets comme : nouvelles liaisons aériennes, ouverture d'hôtels, changements de visa, événements touristiques, actualité politique impactant le tourisme, etc.
+Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de commentaires) :
+{{"articles": [{{"title": "Titre complet et descriptif de l'article", "description": "Résumé en une phrase complète", "url": "URL complète de l'article source", "date": "2025-06-01"}}]}}
+Donne uniquement des articles REELS avec des URLs VALIDES."""
     try:
         r = requests.post("https://api.anthropic.com/v1/messages",
             headers={"x-api-key": ANTHROPIC_API_KEY, "content-type": "application/json", "anthropic-version": "2023-06-01"},
-            json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1500,
+            json={"model": "claude-haiku-4-5-20251001", "max_tokens": 2000,
                   "tools": [{"type": "web_search_20250305", "name": "web_search"}],
                   "messages": [{"role": "user", "content": prompt}]},
-            timeout=120)
+            timeout=180)
         if r.status_code == 200:
-            texts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
+            content = r.json().get("content", [])
+            texts = [b.get("text", "") for b in content if b.get("type") == "text"]
             raw = "".join(texts)
-            json_match = re.search(r'\{[\s\S]*\}', raw)
+            # Try to find JSON in the response
+            json_match = re.search(r'\{[^{}]*"articles"\s*:\s*\[[\s\S]*?\]\s*\}', raw)
+            if not json_match:
+                # Broader match
+                json_match = re.search(r'\{[\s\S]*\}', raw)
             if json_match:
-                news = json.loads(json_match.group()).get("articles", [])[:5]
-                if news:
-                    doc_ref.update({"destNews": news, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
-                    print(f"{len(news)} articles (web search)")
-                else:
-                    print("empty articles")
+                try:
+                    news_data = json.loads(json_match.group())
+                    news = news_data.get("articles", [])[:5]
+                    # Validate each article has at least title and url
+                    valid_news = [a for a in news if a.get("title") and a.get("url", "").startswith("http")]
+                    if valid_news:
+                        doc_ref.update({"destNews": valid_news, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+                        print(f"{len(valid_news)} articles", end="")
+                    else:
+                        print("no valid articles", end="")
+                except json.JSONDecodeError as je:
+                    print(f"JSON parse err: {je}", end="")
             else:
-                print("no JSON in response")
+                print("no JSON found in response", end="")
         else:
-            print(f"HTTP {r.status_code}")
+            err_body = r.text[:200] if r.text else ""
+            print(f"HTTP {r.status_code}: {err_body}", end="")
     except Exception as e:
-        print(f"err: {e}")
+        print(f"err: {e}", end="")
 
 def refresh_dest_news(db):
     """Refresh news for all destination fiches."""
@@ -683,16 +700,16 @@ def enrich_dest_fiches(db):
             if not search_terms:
                 search_terms = fd.get("photoSearchTerms", [])
             if not search_terms:
-                # Generate search terms focused on landscapes and famous landmarks
+                # Generate search terms focused on landmarks and landscapes
                 search_terms = [
                     f"{country} famous landmark panorama",
-                    f"{country} landscape scenic view",
-                    f"{country} iconic monument tourism",
-                    f"{country} natural scenery panoramic",
-                    f"{country} historic site architecture"
+                    f"{country} panoramic landscape scenic",
+                    f"{country} iconic monument",
+                    f"{country} scenic view tourism",
+                    f"{country} historic architecture"
                 ]
             
-            new_photos = search_pexels_photos(search_terms, count=5)
+            new_photos = search_pexels_photos(search_terms, count=5, country=country)
             if new_photos and len(new_photos) >= 3:
                 update = {"photos": new_photos, "photoSearchTerms": search_terms}
                 # Also update hero if needed
