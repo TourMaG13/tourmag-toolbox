@@ -509,11 +509,10 @@ function renderGrid(){
       if(userPrefs&&userPrefs.thematiques&&userPrefs.thematiques.length){
         html+=userPrefs.thematiques.map(tid=>renderThematiqueBlock(tid)).join('');
       }
-      /* Render dest-search on dashboard if user opted in */
       if(currentUser&&userPrefs&&userPrefs.showDestSearch){
         const fiches=modules.filter(x=>x.type==='focus'&&x.active!==false);
         if(fiches.length){
-          html+=`<div class="card w-full" style="grid-column:1/-1"><div class="card-body"><div class="card-cat" style="color:#D97706">EXPLORER</div><div class="card-title" style="font-family:var(--font-display)">Fiches Destinations</div><div class="card-desc" style="margin-bottom:12px">Recherchez parmi ${fiches.length} fiches destinations pratiques.</div><div class="dest-search" style="margin-top:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDestsOnDash(this.value)" id="dash-dest-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div><div id="dash-dest-results" style="display:none;margin-top:12px"></div><div id="dash-dest-popular" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${fiches.sort((a,b)=>(b.generatedAt||'').localeCompare(a.generatedAt||'')).slice(0,8).map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}');height:90px" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join('')}</div></div></div>`;
+          html+=`<div class="card w-full" style="grid-column:1/-1"><div class="card-body"><div class="card-cat" style="color:#D97706">EXPLORER</div><div class="card-title" style="font-family:var(--font-display)">Fiches Destinations</div><div class="card-desc" style="margin-bottom:12px">Recherchez parmi ${fiches.length} fiches destinations pratiques.</div><div class="dest-search" style="margin-top:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDestsOnDash(this.value)"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div><div id="dash-dest-results" style="display:none;margin-top:12px"></div><div id="dash-dest-popular" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">${fiches.sort((a,b)=>(b.generatedAt||'').localeCompare(a.generatedAt||'')).slice(0,8).map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}');height:90px" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join('')}</div></div></div>`;
         }
       }
     }else{
@@ -607,7 +606,7 @@ function renderCustomizePanel(allMods){
   return`<div class="customize-panel show" style="grid-column:1/-1">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px"><div style="font-family:var(--font-display);font-size:18px;font-weight:700">Personnaliser mon dashboard</div><div style="flex:1"></div><button onclick="toggleCustomizePanel()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px">Fermer</button></div>
     <div class="cust-section"><div class="cust-section-title">Mes flux d'actualités</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Sélectionnez les thématiques qui vous intéressent.</p>${themasHtml}${styleHtml}</div>
-    <div class="cust-section"><div class="cust-section-title">Blocs visibles</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Décochez les blocs que vous ne souhaitez pas voir sur votre dashboard.</p><label class="cust-toggle" style="margin-bottom:10px;padding:10px 14px;background:${(prefs.showDestSearch)?'var(--accent-light)':'#F8FAFC'};border:1px solid ${(prefs.showDestSearch)?'var(--accent)':'var(--border)'};border-radius:10px"><input type="checkbox" ${(prefs.showDestSearch)?'checked':''} onchange="toggleDestSearchOnDashboard(this.checked)"><span class="cust-toggle-label" style="display:flex;flex-direction:column;gap:2px"><strong>🌍 Recherche Fiches Destinations</strong><span style="font-size:11px;color:var(--text-muted);font-weight:400">Ajouter le moteur de recherche destinations sur votre dashboard</span></span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${modsHtml}</div></div>
+    <div class="cust-section"><div class="cust-section-title">Blocs visibles</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Décochez les blocs que vous ne souhaitez pas voir sur votre dashboard.</p><label class="cust-toggle" style="margin-bottom:10px;padding:10px 14px;background:${(prefs.showDestSearch)?'var(--accent-light)':'#F8FAFC'};border:1px solid ${(prefs.showDestSearch)?'var(--accent)':'var(--border)'};border-radius:10px"><input type="checkbox" ${(prefs.showDestSearch)?'checked':''} onchange="toggleDestSearchOnDashboard(this.checked)"><span class="cust-toggle-label" style="display:flex;flex-direction:column;gap:2px"><strong>🌍 Recherche Fiches Destinations</strong><span style="font-size:11px;color:var(--text-muted);font-weight:400">Ajouter le moteur de recherche destinations sur le dashboard</span></span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${modsHtml}</div></div>
     <div class="cust-section"><div class="cust-section-title">Ordre des blocs</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Glissez-déposez pour réorganiser l'ordre d'affichage.</p><div id="cust-order-list" style="display:flex;flex-direction:column;gap:4px">${renderOrderList(allMods,hidden)}</div></div>
     ${!currentUser?'<div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#92400E;margin-top:6px">Connectez-vous pour sauvegarder vos préférences et les retrouver sur tous vos appareils.</div>':''}
   </div>`;
@@ -1375,7 +1374,7 @@ function openFiche(id){
   if(destNews.length){
     newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${destNews.slice(0,5).map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<a class="fiche-news-item" href="${E(a.url||'#')}" target="_blank">${a.image?`<img class="fiche-news-item-img" src="${E(a.image)}" onerror="this.style.display='none'">`:''}<div class="fiche-news-item-title">${E(a.title)}${a.description?`<div style="font-size:11px;opacity:.6;margin-top:3px">${E(a.description)}</div>`:''}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`}).join('')}</div>${m.destNewsUpdatedAt?`<div style="margin-top:8px;font-size:10px;opacity:.4;text-align:right">Mis à jour : ${new Date(m.destNewsUpdatedAt).toLocaleDateString('fr-FR')}</div>`:''}</div>`;
   } else {
-    newsHtml=`<div class="fiche-news" style="opacity:.5"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div style="padding:16px;text-align:center;font-size:13px;color:rgba(255,255,255,.5)">Les actualités seront disponibles après le prochain cycle de mise à jour.</div></div>`;
+    newsHtml=`<div class="fiche-news" style="opacity:.5"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Actualités — ${E(country)}</div><div style="padding:16px;text-align:center;font-size:13px;color:rgba(255,255,255,.5)">Les actualités seront disponibles après la prochaine mise à jour.</div></div>`;
   }
 
   /* ═══ ASSEMBLE ═══ */
@@ -1459,31 +1458,19 @@ function closeFiche(){
 }
 
 function filterDests(q){
-  const fiches=modules.filter(m=>m.type==='focus');
-  const results=document.getElementById('dest-results');
-  const gallery=document.getElementById('dest-gallery');
+  const fiches=modules.filter(m=>m.type==='focus');const results=document.getElementById('dest-results');const gallery=document.getElementById('dest-gallery');
   if(!q.trim()){results.style.display='none';if(gallery)gallery.style.display='';return}
-  if(gallery)gallery.style.display='none';
-  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
-  results.style.display='grid';
-  results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+  if(gallery)gallery.style.display='none';const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  results.style.display='grid';results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
 }
 function filterDestsOnDash(q){
-  const fiches=modules.filter(m=>m.type==='focus');
-  const el=document.getElementById('dash-dest-results');
-  const pop=document.getElementById('dash-dest-popular');
-  if(!el)return;
-  if(!q.trim()){el.style.display='none';if(pop)pop.style.display='';return}
-  if(pop)pop.style.display='none';
-  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  const fiches=modules.filter(m=>m.type==='focus');const el=document.getElementById('dash-dest-results');const pop=document.getElementById('dash-dest-popular');
+  if(!el)return;if(!q.trim()){el.style.display='none';if(pop)pop.style.display='';return}
+  if(pop)pop.style.display='none';const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
   el.style.display='grid';el.style.gridTemplateColumns='repeat(auto-fill,minmax(130px,1fr))';el.style.gap='10px';
   el.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}');height:90px" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
 }
-function toggleDestSearchOnDashboard(v){
-  if(!userPrefs)userPrefs={...DEFAULT_PREFS};
-  userPrefs.showDestSearch=v;
-  saveUserPrefs();renderGrid();
-}
+function toggleDestSearchOnDashboard(v){if(!userPrefs)userPrefs={...DEFAULT_PREFS};userPrefs.showDestSearch=v;saveUserPrefs();renderGrid()}
 
 /* ══════════ AI ══════════ */
 function fmtAI(t){if(!t)return'';let h=E(t);h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/^[\-•] (.+)/gm,'<li>$1</li>');h=h.replace(/(<li>.*<\/li>)/gs,m=>'<ul style="margin:6px 0 6px 16px;padding:0">'+m+'</ul>');h=h.replace(/\n{3,}/g,'\n\n');h=h.replace(/\n/g,'<br>');return h}
@@ -1496,8 +1483,8 @@ async function sendAI(){const inp=document.getElementById('ai-input'),btn=docume
   const apiKey=displaySettings.claudeApiKey||'';
   if(!apiKey){aiMessages.push({role:'bot',text:'⚠️ Clé API Claude non configurée. Allez dans Administration → Réglages affichage → section Assistant IA pour ajouter votre clé.'});aiLoading=false;renderAI();if(btn)btn.disabled=false;return}
   try{const msgs=aiMessages.map(m=>({role:m.role==='bot'?'assistant':'user',content:m.text}));
-    const sysPrompt=(displaySettings.aiSystemPrompt||AI_SYS)+`\n\nTu disposes de la recherche web pour trouver des informations à jour. Quand l'utilisateur pose une question sur une destination, des formalités, ou l'actualité tourisme, utilise la recherche web pour donner des réponses précises et actuelles. Privilégie les résultats de tourmag.com quand ils existent.`;
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1500,system:sysPrompt,messages:msgs,tools:[{type:'web_search_20250305',name:'web_search'}]})});
+    const sys=(displaySettings.aiSystemPrompt||AI_SYS)+'\nTu disposes de la recherche web. Utilise-la pour trouver des infos à jour, en privilégiant tourmag.com.';
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1500,system:sys,messages:msgs,tools:[{type:'web_search_20250305',name:'web_search'}]})});
     if(!r.ok){const err=await r.json().catch(()=>({}));throw new Error(err.error?.message||'Erreur API '+r.status)}
     const data=await r.json();const txt=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n')||'Erreur.';aiMessages.push({role:'bot',text:txt})}catch(e){aiMessages.push({role:'bot',text:'Erreur : '+e.message})}
   aiLoading=false;renderAI();if(btn)btn.disabled=false;inp.focus()}
@@ -1515,43 +1502,6 @@ function autoResizeIframe(iframe){
 }
 
 /* ══════════ IFRAME RESIZE (pour l'embed sur site web) ══════════ */
-/* ═══ FIX MOBILE: inject CSS directly into parent if same-origin ═══ */
-(function fixMobileInIframe(){
-  if(window.parent===window)return;
-  try{
-    /* Same-origin: inject style directly into parent document */
-    const parentDoc=window.parent.document;
-    if(parentDoc){
-      const style=parentDoc.createElement('style');
-      style.id='tourmag-dashboard-mobile-fix';
-      style.textContent=`
-        @media only screen and (max-width:800px),only screen and (max-width:800px) and (orientation:landscape){
-          .entry-content.instapaper_body iframe,
-          .entry-content iframe,
-          .cell iframe{
-            width:100vw!important;max-width:100vw!important;
-            margin-left:calc(-50vw + 50%)!important;
-            position:relative!important;display:block!important;
-          }
-          .cell,.ecart_col1,.entry-content,.instapaper_body,.return_member{
-            max-width:100vw!important;overflow-x:hidden!important;
-            padding-left:0!important;padding-right:0!important;
-            margin-left:0!important;margin-right:0!important;
-          }
-          .page2_article,.wm-module,.fullbackground{
-            overflow-x:hidden!important;padding-left:0!important;padding-right:0!important;
-          }
-        }`;
-      if(!parentDoc.getElementById('tourmag-dashboard-mobile-fix')){
-        parentDoc.head.appendChild(style);
-      }
-    }
-  }catch(e){
-    /* Cross-origin: try postMessage approach */
-    window.parent.postMessage({type:'tourmag-inject-css',css:'@media(max-width:800px){.entry-content iframe,.cell iframe{width:100vw!important;margin-left:calc(-50vw + 50%)!important}.cell,.ecart_col1,.entry-content{overflow-x:hidden!important;padding:0!important}}'},'*');
-  }
-})();
-
 function notifyParentResize(){
   try{
     const main=document.querySelector('.main');
