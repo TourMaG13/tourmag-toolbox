@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700;8..60,800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Roboto:wght@400;500;700&family=Josefin+Sans:wght@400;600;700&family=Merriweather:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&family=Raleway:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Sora:wght@400;500;600;700&family=Crimson+Text:wght@400;600;700&family=Lexend:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#F0F4F8;--bg-card:#FFF;--bg-sidebar:#0C1929;--bg-sidebar-hover:rgba(255,255,255,.06);--bg-sidebar-active:rgba(8,145,178,.18);--text-dark:#1A2332;--text-body:#475569;--text-muted:#94A3B8;--text-sidebar:#CBD5E1;--text-sidebar-active:#67E8F9;--accent:#0891B2;--accent-light:#ECFEFF;--border:#E2E8F0;--border-light:#F1F5F9;--shadow-lg:0 10px 40px rgba(0,0,0,.08);--radius:16px;--radius-sm:12px;--radius-xs:8px;--sidebar-w:220px;--header-h:64px;--font-display:'Source Serif 4',Georgia,serif;--font-body:'Outfit',system-ui,sans-serif}
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg);color:var(--text-dark);overflow:hidden}html{scrollbar-width:none;overflow:hidden}html::-webkit-scrollbar{display:none}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:var(--font-body);background:var(--bg);color:var(--text-dark);overflow:hidden;overflow-x:hidden;max-width:100vw}html{scrollbar-width:none;overflow:hidden;overflow-x:hidden}html::-webkit-scrollbar{display:none}
 .layout{display:flex}
 .sidebar{width:var(--sidebar-w);background:var(--bg-sidebar);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);border-right:1px solid rgba(255,255,255,.06)}
 .sb-brand{padding:22px 18px 20px;border-bottom:1px solid rgba(255,255,255,.06)}.sb-logo{font-family:var(--font-display);font-size:18px;font-weight:800;background:linear-gradient(135deg,#06B6D4,#22D3EE);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.sb-tagline{font-size:9.5px;letter-spacing:1.8px;text-transform:uppercase;color:rgba(148,163,184,.5);margin-top:4px;font-weight:500}
@@ -81,7 +81,7 @@
 .dataviz-counter{text-align:center;padding:20px}.dataviz-counter-val{font-size:48px;font-weight:800;letter-spacing:-2px;font-family:var(--font-display)}.dataviz-counter-suffix{font-size:28px;font-weight:700;opacity:.7}.dataviz-counter-label{font-size:14px;color:var(--text-muted);margin-top:6px}
 .dataviz-canvas{width:100%;max-height:280px}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(6,1fr);gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-full{grid-column:span 6}.card.w-three-quarters,.card.w-two-thirds,.card.w-half{grid-column:span 3}.card.w-one-third,.card.w-one-quarter,.card.sz-small{grid-column:span 3}.card.sz-xl{grid-column:span 6}.card.sz-large,.card.sz-medium{grid-column:span 3}}
-@media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.layout{overflow-x:hidden}.grid{grid-template-columns:1fr;gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
+@media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h);width:100%;max-width:100vw;overflow-x:hidden}.layout{overflow-x:hidden;width:100%;max-width:100vw}.grid{grid-template-columns:1fr;gap:16px;padding:16px;max-width:100%;overflow-x:hidden}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}.customize-panel{overflow-x:hidden}.dest-gallery{grid-template-columns:1fr!important}.thema-block{grid-column:span 1!important}}
 
 /* Fiche destination modal — immersive redesign */
 .fiche-modal-bg{position:fixed;inset:0;background:rgba(10,15,25,.75);z-index:1000;display:none;justify-content:center;align-items:flex-start;padding:0;overflow-y:auto;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
@@ -509,6 +509,13 @@ function renderGrid(){
       if(userPrefs&&userPrefs.thematiques&&userPrefs.thematiques.length){
         html+=userPrefs.thematiques.map(tid=>renderThematiqueBlock(tid)).join('');
       }
+      /* Render dest-search block on dashboard if user opted in */
+      if(currentUser&&userPrefs&&userPrefs.showDestSearch){
+        const fiches=modules.filter(x=>x.type==='focus'&&x.active!==false);
+        if(fiches.length){
+          html+=`<div class="card w-full" style="grid-column:1/-1"><div class="card-body"><div class="card-cat" style="color:#D97706">EXPLORER</div><div class="card-title">Fiches Destinations</div><div class="card-desc" style="margin-bottom:12px">Recherchez parmi ${fiches.length} fiches destinations pratiques pour agents de voyages.</div><div class="dest-search" style="margin-top:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input placeholder="Rechercher une destination..." oninput="filterDestsInDashboard(this.value)" id="dash-dest-search-input"><span style="font-size:12px;color:var(--text-muted)">${fiches.length} fiches</span></div><div id="dash-dest-results" style="display:none;margin-top:12px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px"></div><div id="dash-dest-popular" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">${fiches.sort((a,b)=>(b.generatedAt||'').localeCompare(a.generatedAt||'')).slice(0,8).map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}');height:90px" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join('')}</div></div></div>`;
+        }
+      }
     }else{
       const custBtn=document.getElementById('customize-btn');
       if(custBtn)custBtn.style.display='none';
@@ -600,7 +607,7 @@ function renderCustomizePanel(allMods){
   return`<div class="customize-panel show" style="grid-column:1/-1">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px"><div style="font-family:var(--font-display);font-size:18px;font-weight:700">Personnaliser mon dashboard</div><div style="flex:1"></div><button onclick="toggleCustomizePanel()" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px">Fermer</button></div>
     <div class="cust-section"><div class="cust-section-title">Mes flux d'actualités</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Sélectionnez les thématiques qui vous intéressent.</p>${themasHtml}${styleHtml}</div>
-    <div class="cust-section"><div class="cust-section-title">Blocs visibles</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Décochez les blocs que vous ne souhaitez pas voir sur votre dashboard.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${modsHtml}</div></div>
+    <div class="cust-section"><div class="cust-section-title">Blocs visibles</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Décochez les blocs que vous ne souhaitez pas voir sur votre dashboard.</p><label class="cust-toggle" style="margin-bottom:8px;padding:10px 14px;background:${(userPrefs&&userPrefs.showDestSearch)?'var(--accent-light)':'#F8FAFC'};border:1px solid ${(userPrefs&&userPrefs.showDestSearch)?'var(--accent)':'var(--border)'};border-radius:10px"><input type="checkbox" ${(userPrefs&&userPrefs.showDestSearch)?'checked':''} onchange="toggleDestSearchOnDashboard(this.checked)"><span class="cust-toggle-label"><strong>🌍 Recherche Fiches Destinations</strong><br><span style="font-size:11px;color:var(--text-muted);font-weight:400">Ajouter le moteur de recherche destinations sur votre dashboard</span></span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px">${modsHtml}</div></div>
     <div class="cust-section"><div class="cust-section-title">Ordre des blocs</div><p style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Glissez-déposez pour réorganiser l'ordre d'affichage.</p><div id="cust-order-list" style="display:flex;flex-direction:column;gap:4px">${renderOrderList(allMods,hidden)}</div></div>
     ${!currentUser?'<div style="padding:10px 14px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:8px;font-size:12px;color:#92400E;margin-top:6px">Connectez-vous pour sauvegarder vos préférences et les retrouver sur tous vos appareils.</div>':''}
   </div>`;
@@ -705,6 +712,13 @@ function toggleThematique(themaId){
       if(s.exists){thematiqueArticles[themaId]=s.data();renderGrid()}
     });
   }
+  saveUserPrefs();
+  renderGrid();
+}
+
+function toggleDestSearchOnDashboard(show){
+  if(!userPrefs)userPrefs={...DEFAULT_PREFS};
+  userPrefs.showDestSearch=show;
   saveUserPrefs();
   renderGrid();
 }
@@ -1367,6 +1381,9 @@ function openFiche(id){
   let newsHtml='';
   if(destNews.length){
     newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${destNews.slice(0,5).map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<a class="fiche-news-item" href="${E(a.url||'#')}" target="_blank"><div class="fiche-news-item-title">${E(a.title)}${a.description?`<div style="font-size:11px;opacity:.6;margin-top:3px">${E(a.description)}</div>`:''}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`}).join('')}</div>${m.destNewsUpdatedAt?`<div style="margin-top:8px;font-size:10px;opacity:.4;text-align:right">Mis à jour : ${new Date(m.destNewsUpdatedAt).toLocaleDateString('fr-FR')}</div>`:''}</div>`;
+  } else {
+    /* Show a placeholder indicating news are being loaded */
+    newsHtml=`<div class="fiche-news" style="opacity:.7"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div style="padding:20px;text-align:center;color:rgba(255,255,255,.5);font-size:13px">Les actualités de cette destination sont en cours de chargement. Elles apparaîtront lors de votre prochaine visite.</div></div>`;
   }
 
   /* ═══ ASSEMBLE ═══ */
@@ -1455,6 +1472,18 @@ function filterDests(q){
   const gallery=document.getElementById('dest-gallery');
   if(!q.trim()){results.style.display='none';if(gallery)gallery.style.display='';return}
   if(gallery)gallery.style.display='none';
+  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  results.style.display='grid';
+  results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+}
+
+function filterDestsInDashboard(q){
+  const fiches=modules.filter(m=>m.type==='focus');
+  const results=document.getElementById('dash-dest-results');
+  const popular=document.getElementById('dash-dest-popular');
+  if(!results)return;
+  if(!q.trim()){results.style.display='none';if(popular)popular.style.display='';return}
+  if(popular)popular.style.display='none';
   const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
   results.style.display='grid';
   results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
