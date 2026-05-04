@@ -343,33 +343,34 @@ def generate_dest_fiche(db, country, photo=""):
     prompt = f"""Fiche destination pro "{country}" pour agents de voyages français.
 Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
 {{
-  "summary": "Résumé accrocheur 2-3 phrases pour agents de voyages",
+  "summary": "Un résumé accrocheur et fluide de 3-4 phrases complètes, rédigé comme un texte d'appel pour agents de voyages. Décris l'attrait principal de la destination, son positionnement et ce qui la rend unique.",
   "essentials": {{
-    "visa": "UNE phrase synthétique sur visa/passeport",
-    "sante": "UNE phrase synthétique sur santé/vaccins",
-    "devise": "UNE phrase synthétique sur devise/budget avec taux de change"
+    "visa": "UNE phrase complète et bien rédigée sur les conditions de visa et passeport",
+    "sante": "UNE phrase complète et bien rédigée sur les recommandations sanitaires et vaccins",
+    "devise": "UNE phrase complète et bien rédigée sur la devise locale, le taux de change et le budget moyen"
   }},
-  "photoSearchTerms": ["lieu célèbre précis 1", "lieu célèbre précis 2", "paysage naturel célèbre", "scène culturelle typique", "gastronomie locale"],
+  "photoSearchTerms": ["monument ou paysage emblématique précis 1", "paysage naturel grandiose célèbre 2", "site touristique majeur 3", "panorama ou point de vue connu 4", "monument historique ou architectural célèbre 5"],
   "sections": [
-    {{"title": "Conseils MAE", "group": "pratique", "content": "- Niveau de vigilance : ...\\n- Zones sûres : ...\\n- Zones à éviter : ...\\n- Recommandations : ..."}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : détail complet\\n- Visa : détail complet\\n- Vaccins : détail complet\\n- Devise et paiements : détail complet"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : X millions de visiteurs par an\\n- Croissance : X% par an\\n- Visiteurs français : X par an\\n- Haute saison : mois à mois\\n- Basse saison : mois à mois\\n- Tendances : phrase complète sur les tendances"}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description complète en une phrase\\n- Lieu 2 : description complète\\n- Lieu 3 : description complète\\n- Lieu 4 : description complète\\n- Lieu 5 : description complète"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : spécialité et types de produits proposés\\n- TO 2 : spécialité et produits\\n- TO 3 : spécialité et produits"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : description des profils\\n- Budget moyen : X€ par personne pour Xj\\n- Durée idéale : X jours\\n- Meilleure période de réservation : ...\\n- Arguments clés : phrase complète\\n- Extensions possibles : destinations combinables"}}
+    {{"title": "Conseils MAE", "group": "pratique", "content": "- Niveau de vigilance : phrase complète décrivant le niveau actuel\\n- Zones sûres : phrase complète décrivant les régions sûres pour les touristes\\n- Zones à éviter : phrase complète décrivant les éventuelles zones déconseillées\\n- Recommandations : phrase complète avec les conseils pratiques de sécurité"}},
+    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : phrase complète détaillant les conditions de validité requises\\n- Visa : phrase complète expliquant les démarches et conditions d'obtention\\n- Vaccins : phrase complète listant les vaccinations recommandées ou obligatoires\\n- Devise et paiements : phrase complète sur la monnaie locale et les moyens de paiement acceptés"}},
+    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : Le pays accueille environ X millions de visiteurs internationaux par an.\\n- Croissance : Le tourisme connaît une croissance annuelle de X%, porté par...\\n- Visiteurs français : La destination attire environ X visiteurs français chaque année.\\n- Haute saison : La haute saison s'étend de mois à mois, avec un pic en mois.\\n- Basse saison : La basse saison, de mois à mois, offre des tarifs plus attractifs.\\n- Tendances : phrase complète décrivant les tendances actuelles du marché touristique"}},
+    {{"title": "Points d'intérêt", "group": "pratique", "content": "- Lieu 1 : description riche et engageante de 2-3 phrases, comme un guide touristique\\n- Lieu 2 : description riche et engageante de 2-3 phrases\\n- Lieu 3 : description riche et engageante de 2-3 phrases\\n- Lieu 4 : description riche et engageante de 2-3 phrases\\n- Lieu 5 : description riche et engageante de 2-3 phrases"}},
+    {{"title": "Tour-opérateurs", "group": "vente", "content": "- TO 1 : phrase complète décrivant la spécialité de ce tour-opérateur et les types de circuits ou séjours proposés\\n- TO 2 : phrase complète décrivant ce TO et ses produits phares\\n- TO 3 : phrase complète décrivant ce TO et son positionnement"}},
+    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : phrase complète décrivant les profils de clientèle les plus adaptés à cette destination\\n- Budget moyen : phrase complète indiquant le budget moyen par personne pour un séjour type\\n- Durée idéale : phrase complète recommandant la durée optimale de séjour\\n- Meilleure période de réservation : phrase complète sur le timing idéal de réservation\\n- Arguments clés : paragraphe de 2-3 phrases détaillant les arguments de vente principaux\\n- Extensions possibles : phrase complète suggérant des combinés ou extensions de voyage"}}
   ]
 }}
-IMPORTANT: 
-- photoSearchTerms = noms de LIEUX PRECIS et CELEBRES du pays (ex: "Porte de Brandebourg Berlin", "Château Neuschwanstein Bavière")
-- Chaque point DOIT être une PHRASE COMPLETE commençant par une MAJUSCULE
-- MAUVAIS EXEMPLE: "passeport valide 6 mois, visa non requis"
-- BON EXEMPLE: "Le passeport doit être valide au moins 6 mois après la date de retour."
+INSTRUCTIONS CRITIQUES :
+- photoSearchTerms = noms de LIEUX PRECIS, CELEBRES et PHOTOGENIQUES du pays. Privilégier les PAYSAGES GRANDIOSES et MONUMENTS EMBLEMATIQUES (ex: "Tour Eiffel Paris", "Lac Titicaca Andes", "Temples Angkor Wat Cambodge", "Fjords Norvège paysage", "Colisée Rome Italie"). NE PAS mettre de termes génériques comme "culture" ou "food".
+- STYLE D'ÉCRITURE : Rédige des PHRASES COMPLETES, fluides et agréables à lire. Chaque point doit se lire comme un texte professionnel, PAS comme un style télégraphique.
+- MAUVAIS EXEMPLE: "passeport valide 6 mois, visa non requis, vaccin fièvre jaune"
+- BON EXEMPLE: "Le passeport doit être valide au moins 6 mois après la date de retour. Aucun visa n'est requis pour les ressortissants français pour un séjour touristique de moins de 90 jours. La vaccination contre la fièvre jaune est obligatoire pour tous les voyageurs."
+- MAUVAIS EXEMPLE pour Points d'intérêt: "Machu Picchu : site inca, 2400m altitude, UNESCO"
+- BON EXEMPLE: "Machu Picchu : Perchée à 2 400 mètres d'altitude dans les Andes, cette cité inca du XVe siècle est l'un des sites archéologiques les plus spectaculaires au monde. Classée au patrimoine mondial de l'UNESCO, elle offre un panorama à couper le souffle sur les montagnes environnantes."
 - Dans Dynamisme touristique, donner des CHIFFRES REELS et PRECIS
-- Séparer chaque point par \\n suivi d'un tiret
-- essentials: UNE phrase COMPLETE par champ"""
+- essentials: UNE phrase COMPLETE et bien construite par champ"""
 
     print("  Generating...", end=" ", flush=True)
-    text = call_haiku(prompt, max_tokens=2500)
+    text = call_haiku(prompt, max_tokens=4000)
     if not text:
         print("FAIL")
         return None
@@ -438,12 +439,25 @@ IMPORTANT:
     return mod_id
 
 def _fetch_news_for_dest(db, doc_ref, country):
-    """Fetch 5 latest tourism news for a destination via Claude web search."""
+    """Fetch 5 latest tourism news for a destination via TourMaG RSS + Claude web search fallback."""
+    # 1. Try TourMaG RSS first (most reliable)
+    safe_country = requests.utils.quote(country.lower())
+    rss_url = f"https://www.tourmag.com/xml/syndication.rss?t={safe_country}"
+    xml = fetch_url(rss_url)
+    if xml and len(xml) > 100:
+        articles = parse_rss(xml, max_items=5)
+        if articles:
+            doc_ref.update({"destNews": articles, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+            print(f"{len(articles)} articles (RSS)")
+            return
+    
+    # 2. Fallback: Claude web search
     if not ANTHROPIC_API_KEY:
         print("no key"); return
     prompt = f"""Trouve les 5 dernières actualités tourisme/voyage concernant "{country}" publiées récemment.
-Réponds UNIQUEMENT en JSON valide (pas de backticks) :
-{{"articles": [{{"title": "Titre complet", "description": "Description en une phrase complète", "url": "https://...", "date": "2025-06-01"}}]}}"""
+Pour chaque article, donne le titre complet, une description en une phrase, l'URL source et la date de publication.
+Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
+{{"articles": [{{"title": "Titre complet de l'article", "description": "Description en une phrase complète et informative", "url": "https://...", "date": "2025-06-01"}}]}}"""
     try:
         r = requests.post("https://api.anthropic.com/v1/messages",
             headers={"x-api-key": ANTHROPIC_API_KEY, "content-type": "application/json", "anthropic-version": "2023-06-01"},
@@ -457,10 +471,13 @@ Réponds UNIQUEMENT en JSON valide (pas de backticks) :
             json_match = re.search(r'\{[\s\S]*\}', raw)
             if json_match:
                 news = json.loads(json_match.group()).get("articles", [])[:5]
-                doc_ref.update({"destNews": news, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
-                print(f"{len(news)} articles")
+                if news:
+                    doc_ref.update({"destNews": news, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+                    print(f"{len(news)} articles (web search)")
+                else:
+                    print("empty articles")
             else:
-                print("no JSON")
+                print("no JSON in response")
         else:
             print(f"HTTP {r.status_code}")
     except Exception as e:
@@ -666,13 +683,13 @@ def enrich_dest_fiches(db):
             if not search_terms:
                 search_terms = fd.get("photoSearchTerms", [])
             if not search_terms:
-                # Generate generic search terms
+                # Generate search terms focused on landscapes and famous landmarks
                 search_terms = [
-                    f"{country} famous landmark tourism",
-                    f"{country} landscape nature scenic",
-                    f"{country} culture tradition people",
-                    f"{country} city architecture",
-                    f"{country} local cuisine food"
+                    f"{country} famous landmark panorama",
+                    f"{country} landscape scenic view",
+                    f"{country} iconic monument tourism",
+                    f"{country} natural scenery panoramic",
+                    f"{country} historic site architecture"
                 ]
             
             new_photos = search_pexels_photos(search_terms, count=5)
