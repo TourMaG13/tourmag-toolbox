@@ -608,18 +608,118 @@ def scrape_thematiques(db):
     })
     print(f"  → {len(THEMATIC_FEEDS)} thématiques, catalogue mis à jour.")
 
+def enrich_dest_fiches(db):
+    """Auto-detect destination fiches missing photos or news, and enrich them."""
+    print("═══ ENRICHISSEMENT FICHES DESTINATIONS ═══")
+    docs = list(db.collection("modules").where("type", "==", "focus").stream())
+    enriched = 0
+    
+    for doc in docs:
+        data = doc.to_dict()
+        country = data.get("title", "")
+        if not country:
+            continue
+        
+        needs_photos = False
+        needs_news = False
+        
+        # Check if photos need enrichment
+        photos = data.get("photos", [])
+        if not photos:
+            needs_photos = True
+        else:
+            # Check if photos are bad (unsplash source URLs or wikimedia junk)
+            bad_urls = [p for p in photos if "source.unsplash.com" in p or "upload.wikimedia" in p or not p.startswith("http")]
+            if len(bad_urls) >= 3:
+                needs_photos = True
+        
+        # Check hero photo too
+        hero = data.get("photo", "")
+        if not hero or "source.unsplash.com" in hero or "upload.wikimedia" in hero:
+            needs_photos = True
+        
+        # Check if news need enrichment
+        news = data.get("destNews", [])
+        news_date = data.get("destNewsUpdatedAt", "")
+        if not news:
+            needs_news = True
+        elif news_date:
+            # Refresh if older than 3 days
+            try:
+                last = datetime.fromisoformat(news_date.replace("Z", "+00:00"))
+                if (datetime.now(timezone.utc) - last).days >= 3:
+                    needs_news = True
+            except:
+                needs_news = True
+        
+        if not needs_photos and not needs_news:
+            continue
+        
+        print(f"  [{country}]", end="", flush=True)
+        
+        # ═══ ENRICH PHOTOS ═══
+        if needs_photos and PEXELS_API_KEY:
+            print(" photos...", end="", flush=True)
+            # Get search terms from existing data or generate from country name
+            search_terms = data.get("photoSearchTerms", [])
+            fd = data.get("ficheData", {})
+            if not search_terms:
+                search_terms = fd.get("photoSearchTerms", [])
+            if not search_terms:
+                # Generate generic search terms
+                search_terms = [
+                    f"{country} famous landmark tourism",
+                    f"{country} landscape nature scenic",
+                    f"{country} culture tradition people",
+                    f"{country} city architecture",
+                    f"{country} local cuisine food"
+                ]
+            
+            new_photos = search_pexels_photos(search_terms, count=5)
+            if new_photos and len(new_photos) >= 3:
+                update = {"photos": new_photos, "photoSearchTerms": search_terms}
+                # Also update hero if needed
+                if not hero or "source.unsplash.com" in hero or "upload.wikimedia" in hero:
+                    update["photo"] = new_photos[0]
+                doc.reference.update(update)
+                print(f" {len(new_photos)} OK", end="", flush=True)
+            else:
+                print(" skip (not enough results)", end="", flush=True)
+        elif needs_photos:
+            print(" photos skip (no Pexels key)", end="", flush=True)
+        
+        # ═══ ENRICH NEWS ═══
+        if needs_news and ANTHROPIC_API_KEY:
+            print(" news...", end="", flush=True)
+            try:
+                _fetch_news_for_dest(db, doc.reference, country)
+            except Exception as e:
+                print(f" err:{e}", end="", flush=True)
+        elif needs_news:
+            print(" news skip (no API key)", end="", flush=True)
+        
+        enriched += 1
+        print()
+        time.sleep(1)
+    
+    if enriched:
+        print(f"  → {enriched} fiches enrichies.")
+    else:
+        print(f"  → Toutes les fiches sont à jour ({len(docs)} vérifiées).")
+
 def main():
-    print(f"╔══ TourMaG Scraper v6 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
+    print(f"╔══ TourMaG Scraper v7 — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')} ══╗")
     db = init_firebase()
     scrape_experts(db)
     scrape_rss_rubriques(db)
     scrape_dynamic_rss(db)
     scrape_thematiques(db)
-    dest = os.environ.get("GENERATE_DEST_FICHE","")
-    if dest: generate_dest_fiche(db, dest, os.environ.get("DEST_FICHE_PHOTO",""))
-    # Refresh destination news (set REFRESH_NEWS=1 to trigger, run 2x/week)
-    if os.environ.get("REFRESH_NEWS", ""):
-        refresh_dest_news(db)
+    # Enrich destination fiches (photos + news) — runs every time
+    enrich_dest_fiches(db)
+    # Manual fiche generation via env var
+    dest = os.environ.get("GENERATE_DEST_FICHE", "")
+    if dest:
+        generate_dest_fiche(db, dest, os.environ.get("DEST_FICHE_PHOTO", ""))
     print("╚══ Done ══╝")
 
 if __name__ == "__main__": main()
