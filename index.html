@@ -1197,10 +1197,8 @@ function openFiche(id){
   /* ═══ PHOTOS ═══ */
   const photos=m.photos||[];
   const heroUrl=m.photo||'';
-  /* Skip the hero photo in the mosaic to avoid duplication */
   const mosaicPhotos=photos.filter(p=>p!==heroUrl);
-  /* If after filtering we have fewer photos, add back from original but still avoid first */
-  const finalMosaic=mosaicPhotos.length>=4?mosaicPhotos.slice(0,5):photos.slice(1,5);
+  const finalMosaic=mosaicPhotos.length>=5?mosaicPhotos.slice(0,5):(mosaicPhotos.length>=4?mosaicPhotos.slice(0,5):photos.slice(photos.length>5?1:0,6));
   const mosaicHtml=finalMosaic.length?`<div class="fiche-mosaic">${finalMosaic.slice(0,5).map(p=>`<div><img class="fiche-mosaic-img" src="${E(p)}" alt="${country}" onerror="this.parentElement.style.display='none'"></div>`).join('')}</div>`:'';
 
   /* ═══ SECTION RENDERER — smart visual rendering from text ═══ */
@@ -1466,11 +1464,11 @@ function filterDests(q){
   const fiches=modules.filter(m=>m.type==='focus');
   const results=document.getElementById('dest-results');
   const gallery=document.getElementById('dest-gallery');
-  if(!q||!q.trim()){if(results){results.style.display='none';results.innerHTML=''}if(gallery)gallery.style.display='grid';return}
+  if(!q||!q.trim()){if(results){results.style.display='none';results.innerHTML=''}if(gallery)gallery.removeAttribute('style');return}
   if(gallery)gallery.style.display='none';
   const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
-  results.style.display='grid';
-  results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+  if(results){results.style.display='grid';
+  results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';}
 }
 function filterDestsOnDash(q){
   const fiches=modules.filter(m=>m.type==='focus');const el=document.getElementById('dash-dest-results');const pop=document.getElementById('dash-dest-popular');
