@@ -284,34 +284,73 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 def search_pexels_photos(queries, count=5, country=""):
-    """Search Pexels or Wikimedia for destination photos. Country name forced in every query."""
+    """Search for destination photos using Claude web search (best) → Pexels → Wikimedia."""
     photos = []
     seen = set()
     
-    for q in queries[:count * 2]:
-        if len(photos) >= count:
-            break
-        # Always include country name for relevance
-        search_q = q if (country and country.lower() in q.lower()) else f"{country} {q}" if country else q
-        found = False
-        
-        # 1. Pexels (needs API key)
-        if PEXELS_API_KEY:
+    # ═══ METHOD 1: Claude web search for real photo URLs (most reliable) ═══
+    if ANTHROPIC_API_KEY and country:
+        terms_str = ", ".join(queries[:count])
+        prompt = f"""Trouve {count} URLs d'images haute qualité en format paysage (landscape) pour ces lieux de {country} : {terms_str}
+
+Cherche des photos sur Wikimedia Commons, Wikipedia, ou des sites de tourisme officiel.
+Pour chaque lieu, donne UNE URL directe vers une image JPG/PNG en haute résolution (pas de pages HTML, pas de vignettes).
+Privilégie les images de Wikimedia Commons (format : https://upload.wikimedia.org/...)
+
+Réponds UNIQUEMENT en JSON (pas de backticks) :
+{{"photos": ["https://url1.jpg", "https://url2.jpg", "https://url3.jpg", "https://url4.jpg", "https://url5.jpg"]}}"""
+        try:
+            r = requests.post("https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY, "content-type": "application/json", "anthropic-version": "2023-06-01"},
+                json={"model": "claude-haiku-4-5-20251001", "max_tokens": 1000,
+                      "tools": [{"type": "web_search_20250305", "name": "web_search"}],
+                      "messages": [{"role": "user", "content": prompt}]},
+                timeout=120)
+            if r.status_code == 200:
+                texts = [b.get("text", "") for b in r.json().get("content", []) if b.get("type") == "text"]
+                raw = "".join(texts)
+                m = re.search(r'\{[\s\S]*"photos"[\s\S]*\}', raw)
+                if m:
+                    try:
+                        found = json.loads(m.group()).get("photos", [])
+                        for url in found:
+                            if (url and url.startswith("http") and url not in seen
+                                    and any(ext in url.lower() for ext in ['.jpg', '.jpeg', '.png', '.webp', 'upload.wikimedia'])
+                                    and not any(bad in url.lower() for bad in ['logo', 'icon', 'flag', 'thumb/2', '120px', '150px', '200px'])):
+                                seen.add(url)
+                                photos.append(url)
+                        if photos:
+                            print(f"Claude:{len(photos)}", end=" ")
+                    except: pass
+        except Exception as e:
+            print(f"Claude photos err: {e}", end=" ")
+    
+    # ═══ METHOD 2: Pexels API (needs key) ═══
+    if len(photos) < count and PEXELS_API_KEY:
+        for q in queries[:count * 2]:
+            if len(photos) >= count: break
+            search_q = q if (country and country.lower() in q.lower()) else f"{country} {q}" if country else q
             try:
                 r = requests.get("https://api.pexels.com/v1/search",
                     headers={"Authorization": PEXELS_API_KEY},
-                    params={"query": search_q, "per_page": 5, "orientation": "landscape", "size": "large"},
+                    params={"query": search_q, "per_page": 3, "orientation": "landscape", "size": "large"},
                     timeout=10)
                 if r.status_code == 200:
                     for p in r.json().get("photos", []):
                         url = p["src"].get("large2x") or p["src"]["large"]
                         if url not in seen:
-                            seen.add(url); photos.append(url); found = True; break
+                            seen.add(url); photos.append(url); break
             except Exception as e:
                 print(f"Pexels err: {e}", end=" ")
-        
-        # 2. Wikimedia Commons (free, no key needed)
-        if not found:
+            time.sleep(0.3)
+        if len(photos) > len(seen) - len(photos):  # If Pexels added some
+            print(f"Pexels:{len(photos)}", end=" ")
+    
+    # ═══ METHOD 3: Wikimedia Commons direct search (free, no key) ═══
+    if len(photos) < count:
+        for q in queries[:count * 2]:
+            if len(photos) >= count: break
+            search_q = q if (country and country.lower() in q.lower()) else f"{country} {q}" if country else q
             try:
                 r = requests.get("https://commons.wikimedia.org/w/api.php",
                     params={"action":"query","format":"json","generator":"search",
@@ -324,18 +363,14 @@ def search_pexels_photos(queries, count=5, country=""):
                         info = page.get("imageinfo", [{}])[0]
                         thumb = info.get("thumburl", "")
                         mime = info.get("mime", "")
-                        w = info.get("width", 0)
-                        h = info.get("height", 0)
-                        # Only photos, landscape oriented, decent size, no SVG/logos
+                        w, h = info.get("width", 0), info.get("height", 0)
                         if (thumb and "image/" in mime and w > 600 and w > h * 0.8
                                 and thumb not in seen
-                                and not any(x in thumb.lower() for x in ['.svg','logo','icon','flag','coat','emblem','seal'])):
-                            seen.add(thumb); photos.append(thumb); found = True; break
+                                and not any(x in thumb.lower() for x in ['.svg','logo','icon','flag','coat','emblem'])):
+                            seen.add(thumb); photos.append(thumb); break
             except Exception as e:
                 print(f"Wiki err: {e}", end=" ")
-        
-        # NO fallback to unsplash — better to have fewer photos than wrong ones
-        time.sleep(0.5)
+            time.sleep(0.3)
     
     return photos[:count]
 
