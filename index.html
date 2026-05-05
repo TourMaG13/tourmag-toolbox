@@ -81,6 +81,7 @@
 .dataviz-counter{text-align:center;padding:20px}.dataviz-counter-val{font-size:48px;font-weight:800;letter-spacing:-2px;font-family:var(--font-display)}.dataviz-counter-suffix{font-size:28px;font-weight:700;opacity:.7}.dataviz-counter-label{font-size:14px;color:var(--text-muted);margin-top:6px}
 .dataviz-canvas{width:100%;max-height:280px}
 @media(max-width:1100px){.grid{grid-template-columns:repeat(6,1fr);gap:18px;padding:24px}.page-header{padding:28px 24px 20px}.card.w-full{grid-column:span 6}.card.w-three-quarters,.card.w-two-thirds,.card.w-half{grid-column:span 3}.card.w-one-third,.card.w-one-quarter,.card.sz-small{grid-column:span 3}.card.sz-xl{grid-column:span 6}.card.sz-large,.card.sz-medium{grid-column:span 3}}
+@media(max-width:900px){.card.w-one-third,.card.w-one-quarter,.card.sz-small{grid-column:span 6}.dest-gallery{grid-template-columns:1fr 1fr!important}}
 @media(max-width:768px){.ai-input-row{flex-wrap:wrap}.ai-send{flex:1;justify-content:center}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.mobile-bar{display:flex}.main{margin-left:0;padding-top:var(--header-h)}.layout{overflow-x:hidden}.grid{grid-template-columns:1fr;gap:16px;padding:16px}.card.w-full,.card.w-three-quarters,.card.w-half,.card.w-two-thirds,.card.w-one-third,.card.w-one-quarter,.card.sz-xl,.card.sz-large,.card.sz-medium,.card.sz-small{grid-column:span 1}.page-header{padding:20px 16px 16px}.page-title{font-size:24px}}
 
 /* Fiche destination modal — immersive redesign */
@@ -1458,15 +1459,33 @@ function closeFiche(){
 }
 
 function filterDests(q){
-  const fiches=modules.filter(m=>m.type==='focus');const results=document.getElementById('dest-results');const gallery=document.getElementById('dest-gallery');
-  if(!q.trim()){results.style.display='none';if(gallery)gallery.style.display='';return}
-  if(gallery)gallery.style.display='none';const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
-  results.style.display='grid';results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+  const fiches=modules.filter(m=>m.type==='focus');
+  const results=document.getElementById('dest-results');
+  const gallery=document.getElementById('dest-gallery');
+  if(!q||!q.trim()){
+    if(results){results.style.display='none';results.innerHTML=''}
+    if(gallery)gallery.style.display='';
+    return;
+  }
+  if(gallery)gallery.style.display='none';
+  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  if(results){
+    results.style.display='grid';
+    results.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}')" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
+  }
 }
 function filterDestsOnDash(q){
-  const fiches=modules.filter(m=>m.type==='focus');const el=document.getElementById('dash-dest-results');const pop=document.getElementById('dash-dest-popular');
-  if(!el)return;if(!q.trim()){el.style.display='none';if(pop)pop.style.display='';return}
-  if(pop)pop.style.display='none';const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
+  const fiches=modules.filter(m=>m.type==='focus');
+  const el=document.getElementById('dash-dest-results');
+  const pop=document.getElementById('dash-dest-popular');
+  if(!el)return;
+  if(!q||!q.trim()){
+    el.style.display='none';el.innerHTML='';
+    if(pop)pop.style.display='';
+    return;
+  }
+  if(pop)pop.style.display='none';
+  const filtered=fiches.filter(m=>(m.title||'').toLowerCase().includes(q.toLowerCase()));
   el.style.display='grid';el.style.gridTemplateColumns='repeat(auto-fill,minmax(130px,1fr))';el.style.gap='10px';
   el.innerHTML=filtered.length?filtered.map(m=>`<div class="dest-mini" style="background-image:url('${E(m.photo||'')}');height:90px" onclick="openFiche('${E(m.id)}')"><div class="dest-mini-name">${E(m.title)}</div></div>`).join(''):'<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">Aucune fiche trouv\u00e9e</div>';
 }
