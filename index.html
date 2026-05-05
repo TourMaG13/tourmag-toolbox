@@ -1378,9 +1378,9 @@ function openFiche(id){
   let newsHtml='';
   if(destNews.length){
     newsHtml=`<div class="fiche-news"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Dernières actualités — ${E(country)}</div><div class="fiche-news-list">${destNews.slice(0,5).map(a=>{const dt=a.date?new Date(a.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}):'';return`<a class="fiche-news-item" href="${E(a.url||'#')}" target="_blank"><div class="fiche-news-item-title">${E(a.title)}${a.description?`<div style="font-size:11px;opacity:.6;margin-top:3px">${E(a.description)}</div>`:''}</div>${dt?`<div class="fiche-news-item-date">${dt}</div>`:''}</a>`}).join('')}</div>${m.destNewsUpdatedAt?`<div style="margin-top:8px;font-size:10px;opacity:.4;text-align:right">Mis à jour : ${new Date(m.destNewsUpdatedAt).toLocaleDateString('fr-FR')}</div>`:''}</div>`;
-  }
   } else {
     newsHtml=`<div class="fiche-news" style="opacity:.5"><div class="fiche-news-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/></svg> Actualités — ${E(country)}</div><div style="padding:16px;text-align:center;font-size:13px;color:rgba(255,255,255,.5)">Les actualités seront disponibles après la prochaine mise à jour.</div></div>`;
+  }
 
   /* ═══ ASSEMBLE ═══ */
   const ficheHtml=`
