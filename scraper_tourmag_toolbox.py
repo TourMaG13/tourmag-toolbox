@@ -449,7 +449,7 @@ REGLES : photoSearchTerms = NOMS DE LIEUX CELEBRES de {country} avec le nom du p
     ])
     search_terms = [t if country.lower() in t.lower() else f"{country} {{t}}" for t in search_terms]
     print(f"  Photos: {{search_terms[:2]}}...", end=" ", flush=True)
-    photos = search_pexels_photos(search_terms, count=5, country=country)
+    photos = search_pexels_photos(search_terms, count=6, country=country)
     photos = [p for p in photos if not _is_bad_photo(p)]
     hero_photo = photos[0] if photos else ""
     if photo and not _is_bad_photo(photo):
@@ -745,7 +745,7 @@ def enrich_dest_fiches(db):
                 ]
             
             search_terms = [t if country.lower() in t.lower() else f"{country} {t}" for t in search_terms]
-            new_photos = search_pexels_photos(search_terms, count=5, country=country)
+            new_photos = search_pexels_photos(search_terms, count=6, country=country)
             if new_photos and len(new_photos) >= 3:
                 update = {"photos": new_photos, "photoSearchTerms": search_terms}
                 # Also update hero if needed
