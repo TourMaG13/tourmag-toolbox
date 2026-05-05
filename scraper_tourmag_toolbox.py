@@ -173,7 +173,22 @@ def parse_rss(xml_text, max_items=5):
             title = (item.findtext("title") or "").strip()
             link = (item.findtext("link") or "").strip()
             desc_raw = (item.findtext("description") or "").strip()
-            pub_date = (item.findtext("pubDate") or "").strip()
+            pub_date_raw = (item.findtext("pubDate") or "").strip()
+            # Convert RSS date to ISO for consistent frontend parsing
+            pub_date = pub_date_raw
+            if pub_date_raw:
+                try:
+                    from email.utils import parsedate_to_datetime
+                    dt = parsedate_to_datetime(pub_date_raw)
+                    pub_date = dt.strftime("%Y-%m-%d")
+                except:
+                    # Fallback: try common RSS formats
+                    for fmt in ["%a, %d %b %Y %H:%M:%S %z", "%a, %d %b %Y %H:%M:%S", "%Y-%m-%dT%H:%M:%S"]:
+                        try:
+                            dt = datetime.strptime(pub_date_raw[:len(fmt)+5], fmt)
+                            pub_date = dt.strftime("%Y-%m-%d")
+                            break
+                        except: pass
             image = ""
             enc = item.find("enclosure")
             if enc is not None: image = enc.get("url", "")
@@ -284,7 +299,7 @@ def call_haiku(prompt, system="", max_tokens=1500, retries=3):
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY", "")
 
 def _is_bad_photo(url):
-    """Check if a photo URL is bad (unsplash, generic, too small, non-image)."""
+    """Check if a photo URL is bad (unsplash, generic, non-image)."""
     if not url or not url.startswith("http"):
         return True
     low = url.lower()
@@ -335,7 +350,7 @@ Respond ONLY in valid JSON (no backticks):
         except Exception as e:
             print(f"Claude err:{e}", end=" ")
     
-    # ═══ 2. PEXELS API (needs key, country forced in query) ═══
+    # ═══ 2. PEXELS API ═══
     if len(photos) < count and PEXELS_API_KEY:
         for q in queries[:count * 2]:
             if len(photos) >= count: break
@@ -353,7 +368,7 @@ Respond ONLY in valid JSON (no backticks):
                 print(f"Pexels err:{e}", end=" ")
             time.sleep(0.3)
     
-    # ═══ 3. WIKIMEDIA COMMONS (free, no key) ═══
+    # ═══ 3. WIKIMEDIA COMMONS ═══
     if len(photos) < count:
         for q in queries[:count * 2]:
             if len(photos) >= count: break
@@ -377,7 +392,6 @@ Respond ONLY in valid JSON (no backticks):
                 print(f"Wiki err:{e}", end=" ")
             time.sleep(0.3)
     
-    # NO fallback — better 0 photos than wrong ones
     return photos[:count]
 
 
@@ -385,39 +399,27 @@ def generate_dest_fiche(db, country, photo=""):
     """Generate a destination fiche with a single simple prompt + photos + news."""
     print(f"═══ FICHE: {country} ═══")
     
-    prompt = f"""Rédige une fiche destination professionnelle complète sur "{country}" destinée aux agents de voyages français.
+    prompt = f"""Rédige une fiche destination professionnelle détaillée sur "{country}" destinée aux agents de voyages français.
 
-Réponds UNIQUEMENT en JSON valide (pas de backticks, pas de markdown) :
+Réponds UNIQUEMENT en JSON valide (pas de backticks) :
 {{
-  "summary": "Texte d'accroche de 4-5 phrases rédigées avec soin, décrivant l'attrait touristique, le positionnement et la singularité de la destination.",
+  "summary": "Texte d'accroche de 5-6 phrases, décrivant en détail l'attrait touristique et la singularité de la destination.",
   "essentials": {{
-    "visa": "Une phrase complète sur les formalités d'entrée pour les Français.",
-    "sante": "Une phrase complète sur les recommandations sanitaires.",
-    "devise": "Une phrase complète sur la monnaie locale et le budget moyen."
+    "visa": "2-3 phrases complètes sur les formalités d'entrée pour les Français.",
+    "sante": "2-3 phrases complètes sur les recommandations sanitaires et vaccins.",
+    "devise": "2-3 phrases complètes sur la monnaie locale, taux de change et budget moyen."
   }},
-  "photoSearchTerms": [
-    "{country} [NOM DU MONUMENT LE PLUS CELEBRE]",
-    "{country} [NOM D'UN PAYSAGE NATUREL GRANDIOSE]",
-    "{country} [NOM D'UN DEUXIEME SITE TOURISTIQUE]",
-    "{country} [NOM D'UN PANORAMA CELEBRE]",
-    "{country} [NOM D'UN LIEU HISTORIQUE EMBLEMATIQUE]"
-  ],
+  "photoSearchTerms": ["{country} [monument célèbre 1]","{country} [paysage naturel 2]","{country} [site touristique 3]","{country} [panorama 4]","{country} [lieu historique 5]"],
   "sections": [
-    {{"title": "Conseils MAE", "group": "pratique", "content": "- Niveau de vigilance : [phrase complète]\\n- Zones sûres : [phrase complète]\\n- Zones à éviter : [phrase complète]\\n- Recommandations : [phrase complète]"}},
-    {{"title": "Formalités", "group": "pratique", "content": "- Passeport : [2-3 phrases]\\n- Visa : [2-3 phrases]\\n- Vaccins : [2-3 phrases]\\n- Devise et paiements : [2-3 phrases]"}},
-    {{"title": "Dynamisme touristique", "group": "pratique", "content": "- Fréquentation : [phrase avec chiffres]\\n- Croissance : [phrase avec %]\\n- Visiteurs français : [phrase avec chiffres]\\n- Haute saison : [phrase]\\n- Basse saison : [phrase]\\n- Tendances : [3-4 phrases]"}},
-    {{"title": "Points d'intérêt", "group": "pratique", "content": "- [Lieu 1] : [3-4 phrases descriptives]\\n- [Lieu 2] : [3-4 phrases]\\n- [Lieu 3] : [3-4 phrases]\\n- [Lieu 4] : [3-4 phrases]\\n- [Lieu 5] : [3-4 phrases]"}},
-    {{"title": "Tour-opérateurs", "group": "vente", "content": "- [TO 1] : [2-3 phrases]\\n- [TO 2] : [2-3 phrases]\\n- [TO 3] : [2-3 phrases]"}},
-    {{"title": "Conseils de vente", "group": "vente", "content": "- Cibles clients : [2-3 phrases]\\n- Budget moyen : [phrase]\\n- Durée idéale : [phrase]\\n- Meilleure période : [phrase]\\n- Arguments clés : [3-4 phrases]\\n- Extensions possibles : [2-3 phrases]"}}
+    {{"title":"Conseils MAE","group":"pratique","content":"- Niveau de vigilance : [2 phrases]\\n- Zones sûres : [2 phrases]\\n- Zones à éviter : [2 phrases]\\n- Recommandations : [2 phrases]"}},
+    {{"title":"Formalités","group":"pratique","content":"- Passeport : [3 phrases]\\n- Visa : [3 phrases]\\n- Vaccins : [3 phrases]\\n- Devise et paiements : [3 phrases]"}},
+    {{"title":"Dynamisme touristique","group":"pratique","content":"- Fréquentation : [2-3 phrases avec chiffres]\\n- Croissance : [2 phrases]\\n- Visiteurs français : [2 phrases]\\n- Haute saison : [2 phrases]\\n- Basse saison : [2 phrases]\\n- Tendances : [4-5 phrases détaillées]"}},
+    {{"title":"Points d'intérêt","group":"pratique","content":"- [Lieu 1] : [4-5 phrases passionnées]\\n- [Lieu 2] : [4-5 phrases]\\n- [Lieu 3] : [4-5 phrases]\\n- [Lieu 4] : [4-5 phrases]\\n- [Lieu 5] : [4-5 phrases]"}},
+    {{"title":"Tour-opérateurs","group":"vente","content":"- [TO 1] : [3 phrases]\\n- [TO 2] : [3 phrases]\\n- [TO 3] : [3 phrases]"}},
+    {{"title":"Conseils de vente","group":"vente","content":"- Cibles clients : [3 phrases]\\n- Budget moyen : [2 phrases détaillées]\\n- Durée idéale : [2 phrases]\\n- Meilleure période : [2 phrases]\\n- Arguments clés : [4-5 phrases percutantes]\\n- Extensions possibles : [3 phrases]"}}
   ]
 }}
-
-REGLES CRITIQUES :
-1. photoSearchTerms = NOMS DE LIEUX REELS, CELEBRES et PHOTOGENIQUES de {country}, avec le nom du pays.
-   Ex Allemagne : ["Allemagne Porte de Brandebourg", "Allemagne Château Neuschwanstein", "Allemagne Cathédrale Cologne", "Allemagne vallée du Rhin", "Allemagne île Rügen"]
-   INTERDIT : food, cuisine, culture, people, tradition, gastronomie
-2. Texte fluide, professionnel, PAS télégraphique.
-3. Chiffres réels dans Dynamisme touristique."""
+REGLES : photoSearchTerms = NOMS DE LIEUX CELEBRES de {country} avec le nom du pays. INTERDIT: food/cuisine/people. Texte RICHE et DETAILLE. Chiffres réels."""
 
     print("  Generating...", end=" ", flush=True)
     text = call_haiku(prompt, max_tokens=4000)
@@ -427,40 +429,32 @@ REGLES CRITIQUES :
     try:
         fiche_data = json.loads(re.sub(r'```json|```', '', text).strip())
     except Exception as e:
-        print(f"JSON err: {e}")
-        # Try to salvage partial JSON
+        print(f"JSON err: {{e}}")
         try:
             partial = text.strip()
-            if not partial.endswith('}'):
-                partial = partial[:partial.rfind('}')+1]
+            if not partial.endswith('}}'):
+                partial = partial[:partial.rfind('}}')+1]
             fiche_data = json.loads(re.sub(r'```json|```', '', partial).strip())
         except:
             return None
-    print(f"OK ({len(fiche_data.get('sections', []))} sections)")
+    print(f"OK ({{len(fiche_data.get('sections', []))}} sections)")
     
     slug = re.sub(r'[^a-z0-9]', '-', country.lower())
-    mod_id = f"dest-{slug}-{int(time.time())}"
+    mod_id = f"dest-{{slug}}-{{int(time.time())}}"
     
     # ═══ PHOTOS — Claude web search → Pexels → Wikimedia ═══
-    search_terms = fiche_data.get("photoSearchTerms", [])
-    if not search_terms:
-        search_terms = [
-            f"{country} famous landmark",
-            f"{country} panoramic landscape",
-            f"{country} iconic monument",
-            f"{country} scenic view",
-            f"{country} historic architecture"
-        ]
-    # Force country name in every term
-    search_terms = [t if country.lower() in t.lower() else f"{country} {t}" for t in search_terms]
-    print(f"  Photos: {search_terms[:2]}...", end=" ", flush=True)
+    search_terms = fiche_data.get("photoSearchTerms", [
+        f"{country} famous landmark", f"{country} panoramic landscape",
+        f"{country} iconic monument", f"{country} scenic view", f"{country} historic site"
+    ])
+    search_terms = [t if country.lower() in t.lower() else f"{country} {{t}}" for t in search_terms]
+    print(f"  Photos: {{search_terms[:2]}}...", end=" ", flush=True)
     photos = search_pexels_photos(search_terms, count=5, country=country)
-    # Filter out any bad photos that slipped through
     photos = [p for p in photos if not _is_bad_photo(p)]
     hero_photo = photos[0] if photos else ""
     if photo and not _is_bad_photo(photo):
         hero_photo = photo
-    print(f"{len(photos)} photos")
+    print(f"{{len(photos)}} photos")
     
     essentials = fiche_data.get("essentials", {})
     
@@ -495,25 +489,24 @@ REGLES CRITIQUES :
     return mod_id
 
 def _fetch_news_for_dest(db, doc_ref, country):
-    """Fetch news: TourMaG RSS → TourMaG HTML → Claude web search."""
+    """Fetch 5 latest tourism news for a destination via Claude web search."""
     articles = []
-    safe_tag = country.lower().replace(" ", "+").replace("'", "+")
-    
     # 1. TourMaG RSS
+    safe_tag = country.lower().replace(" ", "+").replace("'", "+")
     rss_url = f"https://www.tourmag.com/xml/syndication.rss?t={safe_tag}"
     xml = fetch_url(rss_url)
     if xml and len(xml) > 200:
         articles = parse_rss(xml, max_items=5)
         if articles: print(f"{len(articles)} (TourMaG RSS)", end="")
     
-    # 2. TourMaG HTML
+    # 2. TourMaG HTML scraping
     if not articles:
         articles = scrape_html_articles(f"https://www.tourmag.com/tags/{safe_tag}/", max_items=5)
         if articles: print(f"{len(articles)} (TourMaG HTML)", end="")
     
-    # 3. Claude web search
+    # 3. Claude web search fallback
     if not articles and ANTHROPIC_API_KEY:
-        prompt = f"""Trouve 5 actualités récentes tourisme sur "{country}" depuis tourmag.com ou sites francophones tourisme pro.
+        prompt = f"""Trouve 5 actualités récentes tourisme "{country}" sur tourmag.com ou sites tourisme pro francophones.
 JSON uniquement: {{"articles": [{{"title":"...","description":"...","url":"https://...","date":"2025-06-01"}}]}}"""
         try:
             r = requests.post("https://api.anthropic.com/v1/messages",
@@ -540,6 +533,7 @@ JSON uniquement: {{"articles": [{{"title":"...","description":"...","url":"https
         if not art.get("image") and art.get("url"):
             art["image"] = get_og_image(art["url"]); time.sleep(0.3)
     doc_ref.update({"destNews": articles, "destNewsUpdatedAt": datetime.now(timezone.utc).isoformat()})
+
 
 def refresh_dest_news(db):
     """Refresh news for all destination fiches."""
@@ -703,9 +697,9 @@ def enrich_dest_fiches(db):
         if not photos:
             needs_photos = True
         else:
-            # Check if photos are bad (ANY unsplash URL, wikimedia junk, or invalid)
+            # Check if photos are bad (unsplash source URLs or wikimedia junk)
             bad_urls = [p for p in photos if _is_bad_photo(p)]
-            if len(bad_urls) >= 2:
+            if len(bad_urls) >= 3:
                 needs_photos = True
         
         # Check hero photo too
@@ -735,27 +729,23 @@ def enrich_dest_fiches(db):
         # ═══ ENRICH PHOTOS ═══
         if needs_photos:
             print(" photos...", end="", flush=True)
-            # Get search terms from existing data — check BOTH field names
-            search_terms = data.get("photoSearchTerms", [])
-            if not search_terms:
-                search_terms = data.get("photoKeywords", [])
+            # Get search terms from existing data or generate from country name
+            search_terms = data.get("photoSearchTerms", []) or data.get("photoKeywords", [])
             fd = data.get("ficheData", {})
             if not search_terms:
                 search_terms = fd.get("photoSearchTerms", [])
             if not search_terms:
+                # Generate generic search terms
                 search_terms = [
-                    f"{country} famous landmark",
-                    f"{country} panoramic landscape",
-                    f"{country} iconic monument",
-                    f"{country} scenic view",
-                    f"{country} historic architecture"
+                    f"{country} famous landmark tourism",
+                    f"{country} landscape nature scenic",
+                    f"{country} culture tradition people",
+                    f"{country} city architecture",
+                    f"{country} local cuisine food"
                 ]
-            # Force country in every term
-            search_terms = [t if country.lower() in t.lower() else f"{country} {t}" for t in search_terms]
             
+            search_terms = [t if country.lower() in t.lower() else f"{country} {t}" for t in search_terms]
             new_photos = search_pexels_photos(search_terms, count=5, country=country)
-            # Filter out bad photos
-            new_photos = [p for p in new_photos if not _is_bad_photo(p)]
             if new_photos and len(new_photos) >= 3:
                 update = {"photos": new_photos, "photoSearchTerms": search_terms}
                 # Also update hero if needed
@@ -764,7 +754,8 @@ def enrich_dest_fiches(db):
                 doc.reference.update(update)
                 print(f" {len(new_photos)} OK", end="", flush=True)
             else:
-                print(f" skip ({len(new_photos)} results)", end="", flush=True)
+                print(" skip (not enough results)", end="", flush=True)
+        
         
         # ═══ ENRICH NEWS ═══
         if needs_news:
@@ -773,6 +764,7 @@ def enrich_dest_fiches(db):
                 _fetch_news_for_dest(db, doc.reference, country)
             except Exception as e:
                 print(f" err:{e}", end="", flush=True)
+        
         
         enriched += 1
         print()
